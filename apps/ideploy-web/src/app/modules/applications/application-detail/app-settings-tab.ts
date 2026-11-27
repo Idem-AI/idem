@@ -32,7 +32,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
           <p class="mt-1 text-sm leading-relaxed" style="color:var(--color-text-secondary);">{{ 'applications.detail.generalHint' | translate }}</p>
         </header>
         <form class="space-y-4 p-5" [formGroup]="configForm" (ngSubmit)="save()">
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm" for="cfg-repo">{{ 'applications.detail.gitRepository' | translate }}</label>
               <input type="text" id="cfg-repo" class="font-mono text-sm" placeholder="https://github.com/org/repo" formControlName="git_repository" />
@@ -45,7 +45,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
           <details class="rounded-lg px-4 py-3" style="border:1px solid var(--color-surface-2);" [open]="advancedOpen()">
             <summary class="cursor-pointer select-none text-sm font-medium">{{ 'applications.detail.buildOptions' | translate }}</summary>
             <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.buildOptionsHint' | translate }}</p>
-          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm" for="cfg-pack">{{ 'applications.detail.buildPack' | translate }}</label>
               <select id="cfg-pack" formControlName="build_pack">
@@ -166,7 +166,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
               <li style="color:var(--color-text-secondary);">{{ 'applications.detail.noRegistry' | translate }}</li>
             }
           </ul>
-          <form class="grid gap-2 sm:grid-cols-4" [formGroup]="registryForm" (ngSubmit)="addRegistry()">
+          <form class="grid grid-cols-1 gap-2 sm:grid-cols-4" [formGroup]="registryForm" (ngSubmit)="addRegistry()">
             <input type="text" class="font-mono text-sm" formControlName="registry" placeholder="registry.example.com" />
             <input type="text" class="font-mono text-sm" formControlName="username" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
             <input type="password" class="font-mono text-sm" formControlName="password" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />

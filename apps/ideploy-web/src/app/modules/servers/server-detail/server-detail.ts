@@ -43,18 +43,18 @@ import {
       <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'servers.loading' | translate }}</p>
     } @else if (server(); as s) {
       <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+        <div class="min-w-0">
+          <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
             {{ s.name }}
           </h1>
-          <p class="mt-1 font-mono text-sm" style="color:var(--color-text-secondary);">
+          <p class="mt-1 font-mono text-sm break-all" style="color:var(--color-text-secondary);">
             {{ s.user }}&#64;{{ s.ip }}:{{ s.port }}
           </p>
           @if (s.description) {
             <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ s.description }}</p>
           }
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex w-full flex-wrap gap-2 sm:w-auto [&>*]:flex-auto [&>*]:justify-center [&>*]:whitespace-nowrap sm:[&>*]:flex-none">
           <a class="outer-button" [routerLink]="['/servers', s.uuid, 'terminal']">
             <i class="pi pi-code mr-2"></i>{{ 'terminal.open' | translate }}
           </a>
@@ -71,7 +71,7 @@ import {
         <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
       }
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <!-- Health: one SSH round trip, on demand. -->
         <section class="glass-card p-4">
           <div class="mb-3 flex items-center justify-between gap-2">
@@ -207,11 +207,11 @@ import {
               {{ 'servers.detail.proxyHint' | translate }}
             </p>
           }
-          <div class="flex gap-2">
-            <button class="outer-button" (click)="startProxy()" [disabled]="proxyBusy()">
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="outer-button button-sm whitespace-nowrap" (click)="startProxy()" [disabled]="proxyBusy()">
               {{ 'servers.startProxy' | translate }}
             </button>
-            <button class="outer-button" (click)="stopProxy()" [disabled]="proxyBusy()">
+            <button class="outer-button button-sm whitespace-nowrap" (click)="stopProxy()" [disabled]="proxyBusy()">
               {{ 'servers.detail.stopProxy' | translate }}
             </button>
             <button class="text-xs" style="color:var(--color-text-secondary);" (click)="toggleProxyConfig()">

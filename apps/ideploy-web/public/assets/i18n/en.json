@@ -415,7 +415,10 @@
     },
     "profile": "My profile",
     "display": "Display",
-    "replayTour": "Replay the tour"
+    "replayTour": "Replay the tour",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "navigation": "Main navigation"
   },
   "applications": {
     "open": "Open",
@@ -728,7 +731,7 @@
       "listTitle": "Your addresses",
       "listHint": "The addresses your application answers at. The first one is the primary address.",
       "addAnother": "Add a domain",
-      "idemAddress": "IDEM address, included",
+      "idemAddress": "ideploy.site address, included",
       "primary": "Primary",
       "resume": "Resume the guide",
       "copy": "Copy the address {{host}}",
@@ -841,7 +844,25 @@
       "backupAddress": "Technical backup address",
       "buy": "Buy a name",
       "buyAnother": "Buy another name",
-      "buyHint": "Bought on iDomain and paid from your wallet: the address and HTTPS are set up for you."
+      "buyHint": "Bought on iDomain and paid from your wallet: the address and HTTPS are set up for you.",
+      "customize": {
+        "open": "Customize",
+        "title": "Choose the name of the free address",
+        "hint": "3 to 40 letters, digits or dashes.",
+        "checking": "Checking…",
+        "free": "{{host}} is available.",
+        "cta": "Use this address",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "error": "The address could not be changed. Try again in a moment.",
+        "done": "New address saved. It will be secure (HTTPS) within a minute.",
+        "refused": {
+          "invalid": "Use 3 to 40 letters, digits or dashes, with no dash at either end.",
+          "reserved": "This name is kept for IDEM. Choose another one.",
+          "taken": "This address is already taken. Choose another one.",
+          "unavailable": "Cannot check right now. Try again in a moment."
+        }
+      }
     }
   },
   "projects": {

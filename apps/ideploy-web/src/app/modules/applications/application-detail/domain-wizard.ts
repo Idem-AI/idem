@@ -119,7 +119,7 @@ type Stage = 'done' | 'waiting' | 'problem' | 'todo';
           <!-- 3. The record to create -->
           @case ('record') {
             @if (provider(); as p) {
-              <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
                 <div>
                   <h3 class="text-lg font-semibold">{{ 'applications.domain.wizard.recordTitle' | translate: { provider: p.name || ('applications.domain.wizard.yourProvider' | translate) } }}</h3>
                   <ol class="mt-4 space-y-3">

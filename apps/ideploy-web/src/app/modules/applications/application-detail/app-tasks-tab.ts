@@ -47,7 +47,7 @@ const PRESETS: { key: string; cron: string | null }[] = [
                 <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
                   <i class="pi pi-clock text-xs" style="color:var(--color-text-secondary);"></i>
                 </span>
-                <div class="min-w-0 flex-1">
+                <div class="min-w-0 flex-1 basis-48">
                   <div class="text-sm font-semibold text-text-primary">{{ task.name }}</div>
                   <div class="flex flex-wrap gap-x-3 font-mono text-xs" style="color:var(--color-text-secondary);">
                     <span class="truncate">{{ task.command }}</span>
@@ -86,7 +86,7 @@ const PRESETS: { key: string; cron: string | null }[] = [
         </ul>
       }
 
-      <form class="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_1.5fr_1fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="add()">
+      <form class="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-[1fr_1.5fr_1fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="add()">
         <div>
           <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="task-name">{{ 'applications.detail.taskNameLabel' | translate }}</label>
           <input type="text" id="task-name" [placeholder]="'applications.detail.namePlaceholder' | translate" formControlName="name" />

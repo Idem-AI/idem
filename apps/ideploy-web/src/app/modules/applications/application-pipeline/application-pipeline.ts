@@ -55,7 +55,7 @@ const POLL_INTERVAL_MS = 4_000;
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
         @if (!embedded()) {
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+          <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
             {{ 'pipeline.title' | translate }}
           </h1>
         }
@@ -72,7 +72,7 @@ const POLL_INTERVAL_MS = 4_000;
     }
 
     @if (config(); as c) {
-      <div class="grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <section class="glass-card p-4 self-start">
           <div class="mb-4 flex items-center gap-2">
             <i class="pi pi-sliders-h text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
@@ -122,7 +122,7 @@ const POLL_INTERVAL_MS = 4_000;
           <div class="mb-5 space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);">
             <p class="text-sm font-medium">{{ 'pipeline.gates.title' | translate }}</p>
             <p class="text-xs" style="color:var(--color-text-tertiary);">{{ 'pipeline.gates.hint' | translate }}</p>
-            <div class="grid gap-3 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label class="mb-1 block text-sm" for="gate-trivy">{{ 'pipeline.gates.trivy' | translate }}</label>
                 <select id="gate-trivy" [value]="c.gates.trivy_fail_on" (change)="setGate(c, 'trivy_fail_on', $any($event.target).value)">

@@ -31,11 +31,11 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
         {{ 'projects.common.loading' | translate }}
       </p>
     } @else if (workspace(); as ws) {
-      <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
+      <div class="mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div class="min-w-0">
           <h1
-            class="heading-serif"
-            style="font-size:32px;font-weight:700;color:var(--color-text-primary);"
+            class="heading-serif text-2xl sm:text-[32px] break-words"
+            style="font-weight:700;color:var(--color-text-primary);"
           >
             {{ ws.name }}
           </h1>
@@ -46,7 +46,8 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
           }
         </div>
         <button
-          class="text-xs"
+          type="button"
+          class="shrink-0 whitespace-nowrap text-xs"
           style="color:var(--color-danger);"
           [disabled]="deleting()"
           (click)="remove(ws)"
@@ -59,7 +60,7 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
         <p class="mb-4 text-sm" style="color:var(--color-danger);">{{ error() }}</p>
       }
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'workspaces.hosting' | translate }}</h2>
           <dl class="space-y-2 text-sm">

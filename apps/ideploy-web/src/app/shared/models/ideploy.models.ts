@@ -198,6 +198,16 @@ export interface DomainDnsCheck {
   https: { status: 'valid' | 'invalid' | 'unreachable' | 'not_checked'; issuer?: string; expiresAt?: string; error?: string };
 }
 
+/** `GET /applications/:uuid/platform-address?label=` — the free address `label.ideploy.site`. */
+export interface PlatformAddressCheck {
+  domain: string;
+  current: string | null;
+  label: string | null;
+  host: string | null;
+  available: boolean;
+  reason?: 'invalid' | 'reserved' | 'taken' | 'unavailable';
+}
+
 export interface DomainDnsGuide {
   serverIp: string;
   serverName: string;

@@ -25,6 +25,47 @@ import * as databaseService from './database.service';
 import { LinkTargets, LinkedVariable, applicationDefaults, linkVariables, targetKindOf } from './resource-links';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
 import { reserveAddress } from './address-reservation.service';
+import { domainLabel } from './platform-domain.service';
+import type { ApplicationRow } from '../models/ideploy.types';
+
+/**
+ * The application a code upload (iCode) already published under this name in
+ * this environment — so the next publish updates it, at the same address.
+ *
+ * Without it, every publish whose client had lost the link to the first one
+ * (another browser, a cleared cache, a new chat on the same project) created
+ * a new application: `buni`, then `buni-k3x9p`, then `buni-x81qa`… The address
+ * changed on each deployment (customer report, 27/11/2026). Only code-upload
+ * applications are matched (empty `git_repository`): a Git application is
+ * never taken over by an upload. With several, the one holding the clean
+ * address (`buni.ideploy.site`) wins, then the oldest.
+ */
+export async function findPublishedApplication(environmentId: number, name: string): Promise<ApplicationRow | null> {
+  const { rows } = await pool.query(
+    `SELECT a.id, a.uuid, a.fqdn FROM applications a
+      WHERE a.environment_id = $1 AND lower(a.name) = lower($2) AND COALESCE(a.git_repository, '') = ''
+      ORDER BY a.id ASC`,
+    [environmentId, name]
+  );
+  if (rows.length === 0) return null;
+  const label = domainLabel(name);
+  const clean = rows.find((r) =>
+    String(r.fqdn ?? '')
+      .split(',')
+      .some((part) => /^(?:https?:\/\/)?([^/.]+)\./i.exec(part.trim())?.[1]?.toLowerCase() === label)
+  );
+  return appService.getApplicationById(Number((clean ?? rows[0]).id));
+}
+
+/** Never published: no code stored, no deployment — a reservation, or an application nobody used. */
+async function neverPublished(applicationId: number): Promise<boolean> {
+  const { rows } = await pool.query(
+    `SELECT EXISTS (SELECT 1 FROM application_sources s WHERE s.application_id = $1) AS has_source,
+            EXISTS (SELECT 1 FROM application_deployment_queues q WHERE q.application_id = $1::text) AS deployed`,
+    [applicationId]
+  );
+  return !rows[0]?.has_source && !rows[0]?.deployed;
+}
 
 /**
  * Resolve the workspace this deployment belongs to, creating one if needed.
@@ -169,6 +210,8 @@ export interface QuickDeployResult {
   internalHostname: string;
   /** Variables given the address of a resource of the workspace (REDIS_URL → its Redis…). */
   linkedVariables?: { key: string; resource: string }[];
+  /** An application already published under this name was updated instead of a new one created. */
+  reused?: boolean;
 }
 
 export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<QuickDeployResult> {
@@ -222,6 +265,36 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
       password: dto.registry_password,
     });
   }
+  // Code sent by upload under a name already published here: the same application, the same address.
+  const uploads = !isImage && !dto.git_repository && Boolean(dto.files || dto.reserve);
+  const published = uploads ? await findPublishedApplication(environmentId, dto.name) : null;
+  if (published && dto.reserve && !dto.files) {
+    // Nothing to reserve: the address exists. A reservation never published is simply kept alive.
+    const fresh = await neverPublished(published.id);
+    if (fresh) await reserveAddress(teamId, published, dto.prepare_files ?? null);
+    return {
+      kind: 'application',
+      applicationUuid: published.uuid,
+      url: appService.computeAppLink(published),
+      workspace,
+      internalHostname: workspaceService.internalHostname(published.name, published.uuid),
+      reused: !fresh,
+    };
+  }
+  if (published && dto.files) {
+    await saveSourceForApplication(published.id, dto.files);
+    const { deploymentUuid } = await deploymentService.createDeployment(published, teamId, {});
+    return {
+      kind: 'application',
+      deploymentUuid,
+      applicationUuid: published.uuid,
+      url: appService.computeAppLink(published),
+      workspace,
+      internalHostname: workspaceService.internalHostname(published.name, published.uuid),
+      reused: true,
+    };
+  }
+
   const app = await appService.createApplication(teamId, {
     name: dto.name,
     environment_id: environmentId,
@@ -406,6 +479,27 @@ export async function quickDeployFullstack(
     teamId,
     workspace.uuid
   );
+
+  // Published before under this name: same database, same addresses — only the code changes.
+  const [knownBackend, knownFrontend] = await Promise.all([
+    findPublishedApplication(environmentId, `${dto.name}-api`),
+    findPublishedApplication(environmentId, dto.name),
+  ]);
+  if (knownBackend && knownFrontend) {
+    const knownDatabase = (await databaseService.listDatabases(teamId, environmentId)).find(
+      (db) => db.name.toLowerCase() === `${dto.name}-db`.toLowerCase()
+    );
+    await saveSourceForApplication(knownBackend.id, files);
+    await saveSourceForApplication(knownFrontend.id, files);
+    const backendDeployment = await deploymentService.createDeployment(knownBackend, teamId, {});
+    const frontendDeployment = await deploymentService.createDeployment(knownFrontend, teamId, {});
+    return {
+      workspace,
+      database: { uuid: knownDatabase?.uuid ?? '', name: knownDatabase?.name ?? '' },
+      backend: { uuid: knownBackend.uuid, url: appService.computeAppLink(knownBackend), deploymentUuid: backendDeployment.deploymentUuid },
+      frontend: { uuid: knownFrontend.uuid, url: appService.computeAppLink(knownFrontend), deploymentUuid: frontendDeployment.deploymentUuid },
+    };
+  }
 
   // 1. Database — started before the server is even queued.
   const database = await databaseService.createDatabase(teamId, 'postgresql', {

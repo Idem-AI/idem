@@ -62,7 +62,7 @@ export interface WorkspaceChoice {
       <div class="space-y-5">
         <fieldset>
           <legend class="mb-2 text-sm">{{ 'workspaces.form.target' | translate }}</legend>
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             @for (type of deploymentTypes(); track type) {
               <label
                 class="relative flex cursor-pointer flex-col items-center rounded-xl border p-4 text-center transition-smooth"

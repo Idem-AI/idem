@@ -157,7 +157,9 @@ router.post('/publish', async (req: Request, res: Response) => {
       });
     }
 
-    const created = await ideploy<{ applicationUuid: string; deploymentUuid: string; url: string | null }>(
+    // iDeploy reuses the application already published under this name (same address) when the
+    // client lost track of it — another browser, a new chat: `reused` then says so.
+    const created = await ideploy<{ applicationUuid: string; deploymentUuid: string; url: string | null; reused?: boolean }>(
       req,
       'POST',
       '/quick-deploy',
@@ -167,14 +169,14 @@ router.post('/publish', async (req: Request, res: Response) => {
         build_pack: 'static',
         publish_directory: 'dist',
         ports_exposes: '80',
-        // `monapp.idem.africa` (ou `monapp-<id>` si pris) plutôt qu'une adresse technique.
+        // `monapp.ideploy.site` (ou `monapp-<id>` si pris) plutôt qu'une adresse technique.
         platform_domain: true,
       }
     );
     return res.json({
       success: true,
       mode: 'static',
-      created: true,
+      created: !created.reused,
       url: created.url,
       ids: { applicationUuid: created.applicationUuid },
       deployments: [{ role: 'site', deploymentUuid: created.deploymentUuid }] satisfies PublishedDeployment[],
@@ -207,7 +209,7 @@ router.post('/reserve', async (req: Request, res: Response) => {
               .map((path) => [path, raw[path] as string])
           )
         : undefined;
-    const reserved = await ideploy<{ applicationUuid: string; url: string | null }>(req, 'POST', '/quick-deploy', {
+    const reserved = await ideploy<{ applicationUuid: string; url: string | null; reused?: boolean }>(req, 'POST', '/quick-deploy', {
       name: appName,
       build_pack: 'static',
       publish_directory: 'dist',
@@ -216,6 +218,9 @@ router.post('/reserve', async (req: Request, res: Response) => {
       reserve: true,
       ...(manifests && Object.keys(manifests).length ? { prepare_files: manifests } : {}),
     });
+    // Already published under this name: not a reservation. The client must never hand it back
+    // (`/site/delete` when the name changes) — the publish finds it again and updates it.
+    if (reserved.reused) return res.json({ success: false, code: 'ALREADY_PUBLISHED', applicationUuid: reserved.applicationUuid, url: reserved.url ?? null });
     return res.json({ success: true, applicationUuid: reserved.applicationUuid, url: reserved.url ?? null });
   } catch (error) {
     const err = error as Error & { status?: number; code?: string };
@@ -310,7 +315,7 @@ router.get('/deployments/:uuid', async (req: Request, res: Response) => {
 
 /**
  * Does the public address answer over HTTPS yet? A deployment can be finished
- * while `monapp.idem.africa` is still propagating: showing it then gives a
+ * while `monapp.ideploy.site` is still propagating: showing it then gives a
  * browser error ("not secure", or another server). The client waits on this,
  * and meanwhile offers the automatic address when that one already works.
  */
@@ -368,6 +373,34 @@ router.post('/applications/:uuid/domains', async (req: Request, res: Response) =
       : {};
     if (updated?.redeployRequired) await ideploy(req, 'POST', '/deploy', { uuid: String(req.params.uuid) });
     return res.json({ success: true, hosts: [host, ...(apex && req.body?.includeWww !== false ? [`www.${host}`] : [])] });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return res.status(err.status ?? 502).json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/**
+ * « Personnaliser l'adresse » : the free address `xxx.ideploy.site`, with the
+ * name the owner chooses. GET `?label=` says whether it is free; PUT applies it
+ * (iDeploy routes it, or redeploys by itself).
+ */
+router.get('/applications/:uuid/platform-address', async (req: Request, res: Response) => {
+  try {
+    const label = encodeURIComponent(String(req.query.label ?? '').slice(0, 80));
+    const check = await ideploy<Record<string, unknown>>(req, 'GET', `/applications/${encodeURIComponent(String(req.params.uuid))}/platform-address?label=${label}`);
+    return res.json({ success: true, ...check });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return res.status(err.status ?? 502).json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+router.put('/applications/:uuid/platform-address', async (req: Request, res: Response) => {
+  try {
+    const app = await ideploy<{ fqdn?: string | null; deploymentUuid?: string | null }>(
+      req, 'PUT', `/applications/${encodeURIComponent(String(req.params.uuid))}/platform-address`, { label: String(req.body?.label ?? '').slice(0, 80) }
+    );
+    return res.json({ success: true, url: toUrl(app?.fqdn), deploymentUuid: app?.deploymentUuid ?? null });
   } catch (error) {
     const err = error as Error & { status?: number; code?: string };
     return res.status(err.status ?? 502).json({ success: false, code: err.code, message: err.message });

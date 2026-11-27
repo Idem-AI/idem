@@ -126,7 +126,7 @@ The deploy workflow (`deploy-ideploy-api.yml`) updates the API and every worker 
 
 ```
 browser (iCode) ──► AppGen server /api/ideploy/* ──► iDeploy API /api/v1/quick-deploy… ──► managed server (Traefik)
-                    IDEPLOY_API_URL                  Namecheap: monapp.idem.africa   ──► A record → server IP
+                    IDEPLOY_API_URL                  Namecheap: monapp.ideploy.site ──► A record → server IP
 ```
 
 ### AppGen server
@@ -140,11 +140,12 @@ The request carries the application's files (up to 9 MB of source, more once enc
 ### iDeploy API
 
 - **Database**: the `application_sources` table (code sent by iCode, no Git repository) is created by `migrate:up`, which the container runs at every start (`scripts/start-provisioned.sh`). Nothing to run by hand; check the start-up log after the first deploy.
-- **Addresses `monapp.idem.africa`**: optional. Without them, applications keep the automatic `*.sslip.io` address.
+- **Addresses `monapp.ideploy.site`**: optional. Without a Namecheap account, applications keep the automatic `*.sslip.io` address. The domain is written in the code (`api/config/platform-domain.config.ts`), not in the environment: an old `IDEPLOY_PLATFORM_DOMAIN` is ignored. The `ideploy.site` and `idem.africa` zones must both be in the Namecheap account (the second one only while old addresses are migrated).
+- **Migration from `idem.africa`**: at every start, the API moves applications still at `<name>.idem.africa` to `<name>.ideploy.site` (same name; an id is added only when it is taken), routes the new address or redeploys, removes the old record, emails each owner, and sends a report to `beta@idem.africa`, including "already done" when nothing was left. See `api/services/domain-migration.service.ts`. Logs: `event=domain_migration.*`.
+- **Same address at every publish**: a code upload (iCode) under a name already published in the workspace updates that application instead of creating `name-<id>`. Owners can choose the name of the free address (« Personnaliser », `PUT /applications/:uuid/platform-address`).
 
 | Variable | Where | Value |
 | --- | --- | --- |
-| `IDEPLOY_PLATFORM_DOMAIN` | container environment | `idem.africa`. Empty turns the feature off. |
 | `NAMECHEAP_API_USER` | container environment | The Namecheap account's user name |
 | `NAMECHEAP_USERNAME` | container environment | Same as `NAMECHEAP_API_USER` |
 | `NAMECHEAP_CLIENT_IP` | container environment | Public IP the iDeploy API calls Namecheap from (`docker exec <ideploy-api container> curl -s https://api.ipify.org`) |
@@ -153,7 +154,7 @@ The request carries the application's files (up to 9 MB of source, more once enc
 
 On the Namecheap side, `NAMECHEAP_CLIENT_IP` must be in the API whitelist (Profile → Tools → API Access → Whitelisted IPs). Otherwise every call is refused with `Invalid request IP`.
 
-> Namecheap's API has no "add one record" call: every write replaces the **whole** `idem.africa` zone. iDeploy reads the zone, adds the record and writes it all back under a Redis lock. It refuses to write when the zone comes back empty, and re-reads the zone afterwards. Keep an export of the zone (Domain List → idem.africa → Advanced DNS) before enabling the feature, and do not edit the zone by hand while publications run.
+> Namecheap's API has no "add one record" call: every write replaces the **whole** `ideploy.site` zone (or `idem.africa`, during the migration). iDeploy reads the zone, adds the record and writes it all back under a Redis lock. It refuses to write when the zone comes back empty, and re-reads the zone afterwards. Keep an export of the zone (Domain List → ideploy.site and idem.africa → Advanced DNS) before enabling the feature, and do not edit the zone by hand while publications run.
 
 ### Managed server
 
@@ -165,8 +166,8 @@ Applications run on a server marked `idem_managed`; their `A` record points at i
 
 ### Checking it works
 
-1. Publish a site from iCode. The iDeploy API logs `event=dns.claimed host=<name>.idem.africa`.
-2. `dig +short <name>.idem.africa` answers the managed server's IP.
+1. Publish a site from iCode. The iDeploy API logs `event=dns.claimed host=<name>.ideploy.site`.
+2. `dig +short <name>.ideploy.site` answers the managed server's IP.
 3. The address opens over HTTPS with a valid certificate. Allow a minute for the first certificate.
 
 | Log | Means |
@@ -174,7 +175,7 @@ Applications run on a server marked `idem_managed`; their `A` record points at i
 | `event=dns.claim_failed reason=…` | Namecheap refused or failed. The application is online at its sslip.io address. `reason` says why (IP not whitelisted, wrong key…). |
 | `event=dns.zone_mismatch alert=critical` | After a write, the zone did not hold what was expected. Compare it with the export **now**. |
 
-To turn the addresses off, empty `IDEPLOY_PLATFORM_DOMAIN` and restart the iDeploy API. Records already created stay in the zone; delete them by hand if needed.
+To turn the addresses off, remove the `NAMECHEAP_*` credentials and restart the iDeploy API. Records already created stay in the zone; delete them by hand if needed.
 
 ## CI/CD
 

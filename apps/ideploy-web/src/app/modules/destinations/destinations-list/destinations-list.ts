@@ -44,7 +44,7 @@ interface ServerDestinations {
               <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
                 <i class="pi pi-server text-sm" style="color:var(--color-text-secondary);"></i>
               </span>
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 basis-48">
                 <a class="font-semibold text-text-primary hover:underline" [routerLink]="['/servers', row.server.uuid]">{{ row.server.name }}</a>
                 <div class="font-mono text-xs" style="color:var(--color-text-tertiary);">{{ row.server.ip }}</div>
               </div>

@@ -862,6 +862,22 @@
       "stepRecords": "Add these settings",
       "pickHint": "Pick your provider: we tell you where to click.",
       "copied": "Copied"
+    },
+    "customize": {
+      "open": "Customize the address",
+      "title": "Choose the name of your address",
+      "hint": "3 to 40 letters, digits or dashes.",
+      "checking": "Checking…",
+      "free": "{{host}} is available.",
+      "cta": "Use this address",
+      "saving": "Saving…",
+      "error": "The address could not be changed. Try again in a moment.",
+      "refused": {
+        "invalid": "Use 3 to 40 letters, digits or dashes, with no dash at either end.",
+        "reserved": "This name is kept for IDEM. Choose another one.",
+        "taken": "This address is already taken. Choose another one.",
+        "unavailable": "Cannot check right now. Try again in a moment."
+      }
     }
   },
   "editMode": {

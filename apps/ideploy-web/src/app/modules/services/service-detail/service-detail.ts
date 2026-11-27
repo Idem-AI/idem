@@ -26,15 +26,15 @@ import { EnvRow, EnvVarsEditorComponent } from '../../../shared/components/env-v
       <idem-loader block [label]="'services.loading' | translate" />
     } @else if (service(); as s) {
       <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ s.name }}</h1>
+        <div class="min-w-0">
+          <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">{{ s.name }}</h1>
           <p class="mt-1 flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);">
             <span class="inline-block h-2 w-2 rounded-full" [style.background]="stateColor(stackState())" aria-hidden="true"></span>
             {{ 'services.detail.state.' + stackState() | translate: { running: runningCount(), total: s.applications.length } }}
             @if (s.service_type && s.service_type !== 'custom') { <span>· {{ s.service_type }}</span> }
           </p>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex w-full flex-wrap gap-2 sm:w-auto [&>*]:flex-auto [&>*]:justify-center [&>*]:whitespace-nowrap sm:[&>*]:flex-none">
           <button type="button" class="outer-button" (click)="lifecycle('stop')" [disabled]="busy()">
             @if (acting() === 'stop') { <idem-loader size="xs" /> }
             {{ 'services.detail.stop' | translate }}

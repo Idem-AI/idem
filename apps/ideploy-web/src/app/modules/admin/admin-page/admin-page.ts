@@ -27,7 +27,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+      <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
         {{ 'admin.title' | translate }}
       </h1>
       <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'admin.subtitle' | translate }}</p>
@@ -56,7 +56,7 @@ import {
       </div>
     }
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section class="glass-card p-4">
         <h2 class="mb-3 text-sm font-semibold">
           {{ 'admin.teams' | translate }}
@@ -138,7 +138,7 @@ import {
         }
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
           @if (servers().length === 0) {
             <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'admin.servers.empty' | translate }}</p>

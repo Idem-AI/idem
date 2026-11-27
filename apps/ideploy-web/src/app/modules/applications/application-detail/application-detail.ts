@@ -110,12 +110,12 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
       <!-- Header: identity, state, address — and the one action people come for. -->
       <header class="mb-6 flex flex-wrap items-start justify-between gap-4" data-tour="ideploy-app-header">
         <div class="flex min-w-0 items-center gap-4">
-          <span class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl" style="background:var(--glass-bg-subtle);border:1px solid var(--glass-border);">
-            <i [class]="stackIcon().icon" class="text-2xl" [style.color]="stackIcon().color"></i>
+          <span class="flex h-11 w-11 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-2xl" style="background:var(--glass-bg-subtle);border:1px solid var(--glass-border);">
+            <i [class]="stackIcon().icon" class="text-xl sm:text-2xl" [style.color]="stackIcon().color"></i>
           </span>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-3">
-              <h1 class="heading-serif truncate" style="font-size:28px;font-weight:700;line-height:1.15;color:var(--color-text-primary);">{{ a.name }}</h1>
+              <h1 class="heading-serif min-w-0 max-w-full truncate text-[22px] sm:text-[28px]" style="font-weight:700;line-height:1.15;color:var(--color-text-primary);">{{ a.name }}</h1>
               <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" [style.color]="statusOf(a.status).color" style="background:color-mix(in srgb, currentColor 10%, transparent);">
                 <i [class]="statusOf(a.status).icon" class="text-[10px]"></i>{{ statusOf(a.status).labelKey | translate }}
               </span>
@@ -141,11 +141,11 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex w-full items-center gap-2 sm:w-auto">
           @if (a.link) {
-            <a class="outer-button" [href]="a.link" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link mr-2 text-xs"></i>{{ 'applications.detail.visit' | translate }}</a>
+            <a class="outer-button flex-1 justify-center whitespace-nowrap sm:flex-none" [href]="a.link" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link mr-2 text-xs"></i>{{ 'applications.detail.visit' | translate }}</a>
           }
-          <button type="button" class="inner-button" [disabled]="deploying()" (click)="deploy()">
+          <button type="button" class="inner-button flex-1 justify-center whitespace-nowrap sm:flex-none" [disabled]="deploying()" (click)="deploy()">
             @if (deploying()) { <idem-loader size="xs" /> } @else { <i class="pi pi-send mr-2 text-xs"></i> }
             {{ 'applications.detail.redeploy' | translate }}
           </button>
@@ -185,8 +185,22 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
         <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ actionError() }}</p>
       }
 
+      <!-- Sur mobile, une barre d'onglets ne montre que deux entrées et peut cacher l'active :
+           un sélecteur natif liste toutes les sections et dit toujours où l'on est. -->
+      <div class="mb-5 sm:hidden">
+        <label class="sr-only" for="app-section">{{ 'applications.detail.sections' | translate }}</label>
+        <select id="app-section" (change)="onSectionPick($event)">
+          @for (item of nav; track item.tab) {
+            <option [value]="item.tab" [selected]="tab() === item.tab">{{ 'applications.detail.tab.' + item.tab | translate }}</option>
+          }
+          @for (item of more; track item.tab) {
+            <option [value]="item.tab" [selected]="tab() === item.tab">{{ 'applications.detail.tab.' + item.tab | translate }}</option>
+          }
+        </select>
+      </div>
+
       <!-- Every place this application has, in one bar; developer tools behind "More". -->
-      <nav class="mb-6 flex items-end gap-1 border-b" style="border-color:var(--glass-border);" data-tour="ideploy-app-tabs" [attr.aria-label]="'applications.detail.sections' | translate">
+      <nav class="mb-6 hidden items-end gap-1 border-b sm:flex" style="border-color:var(--glass-border);" data-tour="ideploy-app-tabs" [attr.aria-label]="'applications.detail.sections' | translate">
         <div class="custom-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
           @for (item of nav; track item.tab) {
             <button
@@ -530,6 +544,12 @@ export class ApplicationDetailComponent implements OnInit {
       next: (usage) => this.usage.set(usage[0] ?? null),
       error: () => this.usage.set(null),
     });
+  }
+
+  /** Le sélecteur mobile : ne connaît que les sections réelles. */
+  protected onSectionPick(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as Tab;
+    if (TABS.includes(value)) this.setTab(value);
   }
 
   protected setTab(tab: Tab): void {

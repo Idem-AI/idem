@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
+  PlatformAddressCheck,
   ApiResponse,
   ApiToken,
   Application,
@@ -367,6 +368,18 @@ export class ApiService {
   getDomainDns(uuid: string, domains?: string): Observable<DomainDnsGuide> {
     const query = domains !== undefined ? `?domains=${encodeURIComponent(domains)}` : '';
     return this.unwrap(this.http.get<ApiResponse<DomainDnsGuide>>(`${this.base}/applications/${uuid}/domains/dns${query}`));
+  }
+  /** Is `label.ideploy.site` free for this application? */
+  checkPlatformAddress(uuid: string, label: string): Observable<PlatformAddressCheck> {
+    return this.unwrap(
+      this.http.get<ApiResponse<PlatformAddressCheck>>(`${this.base}/applications/${uuid}/platform-address?label=${encodeURIComponent(label)}`)
+    );
+  }
+  /** The free address becomes `label.ideploy.site` (applied live, or by a deployment iDeploy starts). */
+  renamePlatformAddress(uuid: string, label: string): Observable<Application & { deploymentUuid?: string | null }> {
+    return this.unwrap(
+      this.http.put<ApiResponse<Application & { deploymentUuid?: string | null }>>(`${this.base}/applications/${uuid}/platform-address`, { label })
+    );
   }
   listEnvVars(uuid: string): Observable<EnvVar[]> {
     return this.unwrap(this.http.get<ApiResponse<EnvVar[]>>(`${this.base}/applications/${uuid}/envs`));

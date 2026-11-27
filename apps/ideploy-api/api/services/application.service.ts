@@ -8,7 +8,9 @@ import pool, { withTransaction } from '../config/db.config';
 import logger from '../config/logger';
 import { conflict, unprocessable } from '../utils/errors';
 import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug, toClaim, isValidHostname } from './domain.service';
-import { claimPlatformHost, releasePlatformHost } from './platform-domain.service';
+import { claimPlatformHost, releasePlatformHost, renamePlatformHost, type LabelRefusal } from './platform-domain.service';
+import { getLegacyDnsProvider } from './dns/namecheap.client';
+import { isOnLegacyPlatformDomain } from '../config/platform-domain.config';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
@@ -288,6 +290,35 @@ export async function createApplication(
     ]
   );
   return mapApp(rows[0]);
+}
+
+/**
+ * « Personnaliser l'adresse » : the owner picks the name of their free address
+ * (`buni.ideploy.site` rather than `buni-k3x9p.ideploy.site`). An old
+ * `idem.africa` address is moved at the same time. The previous record is
+ * removed from its zone once the new one is saved.
+ */
+export async function renamePlatformAddress(
+  teamId: number,
+  uuid: string,
+  label: string
+): Promise<{ ok: true; app: ApplicationRow; previous: string | null } | { ok: false; reason: LabelRefusal }> {
+  const app = await getApplication(teamId, uuid);
+  if (!app) throw unprocessable('NOT_FOUND', 'Application not found');
+  const server = app.destination_id ? await getServerForDestination(Number(app.destination_id)) : null;
+  if (!server) return { ok: false, reason: 'unavailable' };
+
+  const result = await renamePlatformHost(app, label, server.ip);
+  if (!result.ok) return result;
+  if (result.fqdn === (app.fqdn ?? '')) return { ok: true, app, previous: result.previous };
+
+  const { rows } = await pool.query('UPDATE applications SET fqdn = $1, updated_at = now() WHERE id = $2 RETURNING *', [result.fqdn, app.id]);
+  if (result.previous) {
+    const zone = isOnLegacyPlatformDomain(result.previous) ? getLegacyDnsProvider() : undefined;
+    void releasePlatformHost(result.previous, zone);
+  }
+  logger.info('Platform address renamed', { event: 'dns.renamed', uuid, previous: result.previous, host: result.host });
+  return { ok: true, app: mapApp(rows[0]), previous: result.previous };
 }
 
 /** Fields safe to update via the config screens (General / Source). */

@@ -47,8 +47,8 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
       <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'databases.loading' | translate }}</p>
     } @else if (database(); as db) {
       <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+        <div class="min-w-0">
+          <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
             {{ db.name }}
           </h1>
           <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
@@ -58,7 +58,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
             <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ db.description }}</p>
           }
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex w-full flex-wrap gap-2 sm:w-auto [&>*]:flex-auto [&>*]:justify-center [&>*]:whitespace-nowrap sm:[&>*]:flex-none">
           <!-- The engine's own client, signed in: query, inspect, fix (an admin account, a lost row). -->
           <a class="outer-button" [routerLink]="['/databases', db.type, db.uuid, 'console']" [title]="'databases.detail.consoleHint' | translate">
             <i class="pi pi-code mr-1.5 text-xs" aria-hidden="true"></i>{{ 'databases.detail.console' | translate }}
@@ -111,7 +111,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
         </section>
       }
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'databases.detail.overview' | translate }}</h2>
           <dl class="space-y-2 text-sm">

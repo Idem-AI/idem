@@ -20,6 +20,19 @@ export interface EmailPayload {
   html?: string;
   template?: string;
   sender?: 'no-reply' | 'support' | 'contact';
+  /**
+   * The message as text blocks: the IDEM API lays it out like every IDEM email
+   * (logo attached, escaped values). Preferred to `html`, kept as the fallback.
+   */
+  layout?: {
+    title: string;
+    subtitle?: string;
+    preheader: string;
+    paragraphs: string[];
+    panels?: { title: string; rows: { label: string; value: string }[] }[];
+    cta?: { label: string; url: string };
+    footerNote?: string;
+  };
 }
 
 const IDEM_API_URL = process.env.IDEM_API_URL || 'http://localhost:3001';
@@ -48,6 +61,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
         subject: payload.subject,
         text: payload.text,
         html: payload.html,
+        layout: payload.layout,
         template: payload.template ?? 'ideploy.domain_migration',
         sender: payload.sender ?? 'no-reply',
       },

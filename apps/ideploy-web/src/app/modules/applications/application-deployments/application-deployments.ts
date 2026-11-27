@@ -32,7 +32,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
         <i class="pi pi-chevron-left text-[10px]"></i>
         {{ 'deployments.backToApplication' | translate }}
       </a>
-      <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+      <h1 class="heading-serif mb-6 text-2xl sm:text-[32px]" style="font-weight:700;color:var(--color-text-primary);">
         {{ 'deployments.title' | translate }}
       </h1>
     }
@@ -57,10 +57,11 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
         <ul>
           @for (d of history(); track d.deployment_uuid; let last = $last) {
             <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5" [style.border-bottom]="last ? 'none' : '1px solid var(--glass-border-subtle)'">
-              <span class="inline-flex w-32 flex-shrink-0 items-center gap-2 text-sm font-medium" [style.color]="statusColor(d.status)">
+              <span class="inline-flex flex-shrink-0 items-center gap-2 text-sm font-medium sm:w-32" [style.color]="statusColor(d.status)">
                 <i class="pi pi-circle-fill text-[7px]" aria-hidden="true"></i>{{ statusLabel(d.status) | translate }}
               </span>
-              <div class="min-w-0 flex-1">
+              <!-- Sur mobile : statut et actions sur une ligne, la version dessous en pleine largeur. -->
+              <div class="order-last min-w-0 basis-full sm:order-none sm:basis-0 sm:flex-1">
                 <p class="text-sm">
                   {{ 'deployments.version' | translate }} <code class="font-mono text-xs">{{ shortCommit(d.commit) }}</code>
                   @if (d.deployment_uuid === current()) {
@@ -71,7 +72,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                   {{ d.created_at | date: 'medium' }} · {{ (d.is_webhook ? 'deployments.viaWebhook' : 'deployments.manual') | translate }}
                 </p>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="ml-auto flex items-center gap-2">
                 @if (restorable().has(d.deployment_uuid)) {
                   <button type="button" class="outer-button button-sm" [disabled]="rollingBack() !== null" (click)="rollbackTo(d.deployment_uuid)">
                     @if (rollingBack() === d.deployment_uuid) { <idem-loader size="xs" /> } @else { <i class="pi pi-replay mr-1.5 text-xs" aria-hidden="true"></i> }

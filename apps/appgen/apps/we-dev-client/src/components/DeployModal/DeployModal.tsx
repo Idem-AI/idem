@@ -31,6 +31,7 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { idomainText, useDomainConnections } from '@idem/shared-idomain/react';
 import { ChoiceList } from '@/components/ui/ChoiceList';
 import { OwnDomainSetup } from './OwnDomainSetup';
+import { AddressCustomize, platformLabel } from './AddressCustomize';
 
 interface DeployModalProps {
   open: boolean;
@@ -89,6 +90,11 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     if (!nameEdited.current) setName(defaultName);
   }, [defaultName]);
   const [copied, setCopied] = useState(false);
+  // « Personnaliser l'adresse » : le nom de l'adresse gratuite (xxx.ideploy.site), ouvert sur demande.
+  const [customizing, setCustomizing] = useState(false);
+  useEffect(() => {
+    if (!open) setCustomizing(false);
+  }, [open]);
   // Ce que le contrôle du site construit a relevé (référencement) : montré sans bloquer la mise en ligne.
   const [buildReport, setBuildReport] = useState<BuildReport | null>(null);
 
@@ -383,6 +389,26 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
             openLabel={t('deployModal.open')}
             copyLabel={copied ? t('header.copied_link') : t('header.copy')}
           />
+        )}
+        {/* L'adresse gratuite porte le nom choisi par le propriétaire : « buni », pas « buni-k3x9p ». */}
+        {!settingDomain && publicAppUuid && (phase === 'done' || (phase === 'ready' && liveUrl)) && platformLabel(address?.url ?? liveUrl) && (
+          customizing ? (
+            <AddressCustomize
+              appUuid={publicAppUuid}
+              currentUrl={(address?.url ?? liveUrl) as string}
+              onCancel={() => setCustomizing(false)}
+              onChanged={async (url) => {
+                setCustomizing(false);
+                if (deployment) await onPublished({ ...deployment, url });
+                // Le nouveau nom se sécurise en une minute environ : relu tout seul (voir l'effet plus haut).
+                setAddress({ url, ready: false, fallbackUrl: address?.fallbackUrl ?? null, domains: address?.domains ?? [] });
+              }}
+            />
+          ) : (
+            <button type="button" onClick={() => setCustomizing(true)} className="button-ghost button-sm mt-2 !px-2">
+              {t('deployModal.customize.open')}
+            </button>
+          )
         )}
         {!settingDomain && addressPending && address?.url && (
           <p className="mt-2 flex items-start gap-2 text-xs text-text-secondary" role="status">

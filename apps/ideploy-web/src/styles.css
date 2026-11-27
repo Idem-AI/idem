@@ -167,5 +167,9 @@
    à droite de la barre latérale fixe (16 rem). */
 :root {
   --idem-float-top: 5rem;
-  --idem-float-center: calc(50% + 8rem);
+  --idem-float-center: 50%;
+}
+/* Sous 1024 px la barre latérale est un tiroir fermé : la pile se centre sur l'écran entier. */
+@media (min-width: 1024px) {
+  :root { --idem-float-center: calc(50% + 8rem); }
 }

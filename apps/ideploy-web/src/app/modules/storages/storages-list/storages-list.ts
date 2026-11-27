@@ -17,7 +17,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
   imports: [ReactiveFormsModule, TranslateModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+    <h1 class="heading-serif text-2xl sm:text-[32px] break-words mb-6" style="font-weight:700;color:var(--color-text-primary);">
       {{ 'storages.title' | translate }}
     </h1>
 

@@ -31,7 +31,7 @@ import { returnLink, safeReturnTo, withQueryParams } from '../../../shared/utils
         </p>
       }
 
-      <h1 class="heading-serif mb-1" style="font-size:28px;font-weight:700;color:var(--color-text-primary);">
+      <h1 class="heading-serif text-2xl sm:text-[28px] break-words mb-1" style="font-weight:700;color:var(--color-text-primary);">
         {{ 'servers.create.title' | translate }}
       </h1>
       <p class="mb-6 text-sm" style="color:var(--color-text-secondary);">
@@ -151,7 +151,7 @@ import { returnLink, safeReturnTo, withQueryParams } from '../../../shared/utils
                   @if (keyGenerateError()) {
                     <p class="text-sm" style="color:var(--color-danger);">{{ keyGenerateError() }}</p>
                   }
-                  <div class="flex gap-2">
+                  <div class="flex flex-wrap gap-2">
                     <button class="inner-button" type="button" [disabled]="generateForm.invalid || generatingKey()" (click)="generateKey()">
                       {{ (generatingKey() ? 'servers.create.generating' : 'servers.create.generateKey') | translate }}
                     </button>
@@ -164,7 +164,7 @@ import { returnLink, safeReturnTo, withQueryParams } from '../../../shared/utils
             }
           </div>
 
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button class="outer-button" type="button" (click)="step.set(1)">{{ 'servers.create.back' | translate }}</button>
             <button class="inner-button" type="button" [disabled]="!canGoToOptions()" (click)="step.set(3)">{{ 'servers.create.next' | translate }}</button>
           </div>
@@ -203,7 +203,7 @@ import { returnLink, safeReturnTo, withQueryParams } from '../../../shared/utils
             <p class="text-sm" style="color:var(--color-danger);">{{ error() }}</p>
           }
 
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button class="outer-button" type="button" (click)="step.set(2)">{{ 'servers.create.back' | translate }}</button>
             <button class="inner-button" type="submit" [disabled]="submitting() || !canSubmit()">
               {{ (submitting() ? 'servers.create.submitting' : 'servers.create.submit') | translate }}

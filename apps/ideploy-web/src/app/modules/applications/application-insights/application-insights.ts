@@ -31,7 +31,7 @@ const POLL_INTERVAL_MS = 10_000;
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
         @if (!embedded()) {
-          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+          <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
             {{ 'insights.title' | translate }}
           </h1>
         }
@@ -53,7 +53,7 @@ const POLL_INTERVAL_MS = 10_000;
         <p>{{ loading() ? ('insights.loading' | translate) : ('insights.noContainers' | translate) }}</p>
       </div>
     } @else {
-      <div class="grid gap-4 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         @for (c of containers(); track c.name) {
           <section class="glass-card p-4">
             <h2 class="mb-3 font-mono text-sm font-semibold">{{ c.name }}</h2>

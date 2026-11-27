@@ -38,8 +38,8 @@ import { NoServerPromptComponent } from '../../../shared/components/no-server-pr
       </a>
 
       <h1
-        class="heading-serif mb-1"
-        style="font-size:28px;font-weight:700;color:var(--color-text-primary);"
+        class="heading-serif text-2xl sm:text-[28px] break-words mb-1"
+        style="font-weight:700;color:var(--color-text-primary);"
       >
         {{ 'workspaces.createTitle' | translate }}
       </h1>
@@ -92,7 +92,7 @@ import { NoServerPromptComponent } from '../../../shared/components/no-server-pr
         } @else {
           <fieldset>
             <legend class="mb-2 text-sm">{{ 'workspaces.form.target' | translate }}</legend>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               @for (type of deploymentTypes(); track type) {
                 <label
                   class="cursor-pointer rounded-xl border p-5 text-center transition-smooth flex flex-col items-center"
@@ -169,7 +169,7 @@ import { NoServerPromptComponent } from '../../../shared/components/no-server-pr
             <p class="text-sm" style="color:var(--color-danger);">{{ error() }}</p>
           }
 
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button class="outer-button" type="button" (click)="step.set(1)">
               {{ 'workspaces.form.back' | translate }}
             </button>

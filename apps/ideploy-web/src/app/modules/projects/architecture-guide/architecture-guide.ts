@@ -54,7 +54,7 @@ import { AppEnvTabComponent } from '../../applications/application-detail/app-en
               {{ 'architectures.progress' | translate: { current: currentStepNumber(), total: totalSteps() } }}
             }
           </p>
-          <h1 class="heading-serif mb-2" style="font-size:28px;font-weight:700;color:var(--color-text-primary);">
+          <h1 class="heading-serif text-2xl sm:text-[28px] break-words mb-2" style="font-weight:700;color:var(--color-text-primary);">
             {{ template()!.name | translate }}
           </h1>
           <p class="text-sm leading-relaxed" style="color:var(--color-text-secondary);">{{ template()!.description | translate }}</p>
