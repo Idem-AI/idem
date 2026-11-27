@@ -35,6 +35,7 @@ import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { EMPTY_PLAN_PROGRESS, PlanComposing, PlanProgressState, PlanStage } from '../plan-composing/plan-composing';
 import { urlChoice, urlFlag, urlParam } from '../../url-state';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /**
  * Ce qu'un autre écran demande au planning en y envoyant l'utilisateur :
@@ -74,7 +75,7 @@ interface MonthView {
  */
 @Component({
   selector: 'app-plan-panel',
-  imports: [
+  imports: [WriteOnlyDirective, 
     TranslateModule,
     ContentDetail,
     PlanWizard,

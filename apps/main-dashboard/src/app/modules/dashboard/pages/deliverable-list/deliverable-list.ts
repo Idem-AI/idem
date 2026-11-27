@@ -30,6 +30,7 @@ import {
 } from '../../models/deliverable-document.model';
 import { businessPlanVariantLabel, pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 type DocumentStatus = 'draft' | 'partial' | 'complete';
 
@@ -81,7 +82,7 @@ const CONFIG: Record<DeliverableKind, DeliverableListConfig> = {
  */
 @Component({
   selector: 'app-deliverable-list',
-  imports: [TranslateModule, ReactiveFormsModule, RouterLink, IncompleteProjectBannerComponent, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, TranslateModule, ReactiveFormsModule, RouterLink, IncompleteProjectBannerComponent, IdemLoaderComponent],
   templateUrl: './deliverable-list.html',
   styleUrl: './deliverable-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

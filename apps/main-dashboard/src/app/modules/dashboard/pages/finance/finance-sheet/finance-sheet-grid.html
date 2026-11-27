@@ -13,7 +13,7 @@
     <i class="pi pi-plus" aria-hidden="true"></i>
     <span>{{ 'dashboard.finance.sheet.insertRow' | translate }}</span>
   </button>
-  <button type="button" class="fsg-tool fsg-tool--danger" [disabled]="touchedRows().length === 0" (click)="deleteRows()">
+  <button appWriteOnly type="button" class="fsg-tool fsg-tool--danger" [disabled]="touchedRows().length === 0" (click)="deleteRows()">
     <i class="pi pi-trash" aria-hidden="true"></i>
     <span>
       @if (touchedRows().length > 1) {
@@ -118,7 +118,7 @@
     <button type="button" role="menuitem" (click)="clearSelection()">
       <i class="pi pi-eraser" aria-hidden="true"></i>{{ 'dashboard.finance.sheet.menu.clear' | translate }}<kbd>Suppr</kbd>
     </button>
-    <button type="button" role="menuitem" class="fsg-menu__danger" (click)="deleteRows()">
+    <button appWriteOnly type="button" role="menuitem" class="fsg-menu__danger" (click)="deleteRows()">
       <i class="pi pi-trash" aria-hidden="true"></i>
       @if (touchedRows().length > 1) {
         {{ 'dashboard.finance.sheet.deleteRows' | translate: { count: touchedRows().length } }}

@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FlyerFormat } from '../../../../models/communication.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** `auto` : l'atelier choisit la forme d'après la demande. */
 type FormatChoice = 'auto' | Extract<FlyerFormat, 'square' | 'story' | 'banner' | 'a4'>;
@@ -34,7 +35,7 @@ let nextId = 0;
  */
 @Component({
   selector: 'app-prompt-box',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, FormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './prompt-box.html',
   styleUrl: './prompt-box.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

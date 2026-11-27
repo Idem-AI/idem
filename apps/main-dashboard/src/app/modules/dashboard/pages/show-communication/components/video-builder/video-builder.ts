@@ -29,6 +29,7 @@ import {
   VideoScope,
   VideoType,
 } from '../../../../models/motion-video.model';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** La forme réelle de chaque format, et où on le publie. */
 const FORMATS: { id: VideoFormat; ratio: string; icons: string[] }[] = [
@@ -73,7 +74,7 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
  */
 @Component({
   selector: 'app-video-builder',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityGateDirective],
+  imports: [WriteOnlyDirective, FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityGateDirective],
   templateUrl: './video-builder.html',
   styleUrl: './video-builder.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,3 +1,4 @@
+import { sharesOf } from '../services/idem-share.service';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail } from '../utils/response';
@@ -75,4 +76,23 @@ export async function deleteInvitation(req: CustomRequest, res: Response): Promi
   } catch (err) {
     fail(res, (err as Error).message, 403);
   }
+}
+
+/**
+ * Les projets IDEM partagés avec ce compte (espace « Mise en ligne ») : ce que
+ * le sélecteur d'espace d'iDeploy propose à côté de « Mon espace ».
+ */
+export async function shared(req: CustomRequest, res: Response): Promise<void> {
+  const shares = await sharesOf(req.user!.idemUid);
+  ok(
+    res,
+    shares.map((share) => ({
+      teamId: share.ownerTeamId,
+      projectId: share.idemProjectId,
+      projectName: share.projectName,
+      ownerName: share.ownerName,
+      level: share.level,
+      appCount: share.applicationUuids.length,
+    }))
+  );
 }

@@ -20,6 +20,7 @@ import { domainGuide } from '../services/domain-dns.service';
 import { applyDomainsLive } from '../services/domain-options.service';
 import { ROUTABLE } from '../services/routes-file.service';
 import { getUserTeamIds } from '../services/user.service';
+import { ShareLevel, sharesOf } from '../services/idem-share.service';
 import { isDomainError } from '../utils/errors';
 import { setTraceUser } from '../utils/trace.util';
 
@@ -60,13 +61,26 @@ async function teamsOf(idemUid: unknown): Promise<{ userId: number; teamIds: num
   return { userId, teamIds: await getUserTeamIds(userId) };
 }
 
-/** L'application et l'équipe qui la possède, si l'utilisateur en est membre. */
-async function accessibleApp(idemUid: unknown, uuid: string) {
+/**
+ * L'application et l'équipe qui la possède, si l'utilisateur en est membre — ou
+ * si un projet IDEM partagé avec lui l'ouvre (espace « Mise en ligne » de
+ * l'équipe du projet, `idem_project_shares`). `need` = `write` pour changer ses
+ * adresses : un membre qui ne fait que voir ne relie pas de domaine.
+ */
+async function accessibleApp(idemUid: unknown, uuid: string, need: ShareLevel = 'read') {
   const who = await teamsOf(idemUid);
-  if (!who) return null;
-  for (const teamId of who.teamIds) {
-    const app = await appService.getApplication(teamId, uuid);
-    if (app) return { app, teamId };
+  if (who) {
+    for (const teamId of who.teamIds) {
+      const app = await appService.getApplication(teamId, uuid);
+      if (app) return { app, teamId };
+    }
+  }
+  if (typeof idemUid !== 'string') return null;
+  for (const share of await sharesOf(idemUid)) {
+    if (!share.applicationUuids.includes(uuid)) continue;
+    if (need === 'write' && share.level !== 'write') continue;
+    const app = await appService.getApplication(share.ownerTeamId, uuid);
+    if (app) return { app, teamId: share.ownerTeamId };
   }
   return null;
 }
@@ -91,12 +105,19 @@ router.get(
   '/applications',
   route(async (req, res) => {
     const who = await teamsOf(req.query.idemUid);
-    if (!who) {
-      res.json({ applications: [] });
-      return;
+    const lists = who ? await Promise.all(who.teamIds.map((teamId) => appService.listApplications(teamId))) : [];
+    const own = lists.flat().map((a) => ({ uuid: a.uuid, name: a.name, domains: splitFqdn(a.fqdn), status: a.status ?? null }));
+    // Les applications des projets IDEM partagés avec lui (espace « Mise en ligne »).
+    const seen = new Set(own.map((a) => a.uuid));
+    const shared: Array<{ uuid: string; name: string; domains: string[]; status: string | null; sharedProject: string; sharedLevel: ShareLevel }> = [];
+    for (const share of typeof req.query.idemUid === 'string' ? await sharesOf(req.query.idemUid) : []) {
+      const apps = (await appService.listApplications(share.ownerTeamId)).filter((a) => share.applicationUuids.includes(a.uuid) && !seen.has(a.uuid));
+      for (const a of apps) {
+        seen.add(a.uuid);
+        shared.push({ uuid: a.uuid, name: a.name, domains: splitFqdn(a.fqdn), status: a.status ?? null, sharedProject: share.projectName, sharedLevel: share.level });
+      }
     }
-    const lists = await Promise.all(who.teamIds.map((teamId) => appService.listApplications(teamId)));
-    res.json({ applications: lists.flat().map((a) => ({ uuid: a.uuid, name: a.name, domains: splitFqdn(a.fqdn), status: a.status ?? null })) });
+    res.json({ applications: [...own, ...shared] });
   })
 );
 
@@ -122,7 +143,7 @@ router.get(
 router.post(
   '/applications/:uuid/domains',
   route(async (req, res) => {
-    const found = await accessibleApp(req.body?.idemUid, String(req.params.uuid));
+    const found = await accessibleApp(req.body?.idemUid, String(req.params.uuid), 'write');
     if (!found) {
       res.status(404).json({ error: 'application_not_found', message: 'Application introuvable.' });
       return;
@@ -154,7 +175,7 @@ router.post(
 router.delete(
   '/applications/:uuid/domains',
   route(async (req, res) => {
-    const found = await accessibleApp(req.body?.idemUid, String(req.params.uuid));
+    const found = await accessibleApp(req.body?.idemUid, String(req.params.uuid), 'write');
     if (!found) {
       res.status(404).json({ error: 'application_not_found', message: 'Application introuvable.' });
       return;

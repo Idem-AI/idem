@@ -25,11 +25,12 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
 import { MermaidLoaderService } from '../../../../../../shared/services/mermaid-loader.service';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 @Component({
   selector: 'app-diagram-generation',
   standalone: true,
-  imports: [
+  imports: [WriteOnlyDirective, 
     ErrorStateComponent,
     CommonModule,
     MarkdownModule,

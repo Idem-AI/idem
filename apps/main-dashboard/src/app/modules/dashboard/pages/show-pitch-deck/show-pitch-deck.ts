@@ -29,6 +29,7 @@ import { CreativityService } from '../../../../shared/services/creativity.servic
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 type StepStatus = 'pending' | 'in-progress' | 'completed';
 
@@ -50,7 +51,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
  */
 @Component({
   selector: 'app-show-pitch-deck',
-  imports: [
+  imports: [WriteOnlyDirective, 
     OwnershipBarComponent,
     ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityGateDirective],
   templateUrl: './show-pitch-deck.html',

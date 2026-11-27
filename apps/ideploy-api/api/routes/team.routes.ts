@@ -12,6 +12,8 @@ router.use(authenticate, requireTeam);
  *   patch: { summary: Update current team (admin), tags: [Teams], responses: { 200: { description: OK } } }
  */
 router.get('/', ctrl.get);
+// Projets IDEM partagés avec moi (équipe de projet, espace « Mise en ligne »).
+router.get('/shared', ctrl.shared);
 router.patch('/', ctrl.update);
 
 router.get('/members', ctrl.members);

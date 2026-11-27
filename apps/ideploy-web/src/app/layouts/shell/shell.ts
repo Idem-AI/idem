@@ -4,6 +4,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { ApiService } from '../../shared/services/api.service';
+import { SharedSpaceService } from '../../shared/services/shared-space.service';
 import { MeterService } from '../../shared/services/meter.service';
 import { DecimalPipe } from '@angular/common';
 import { AuthService } from '../../shared/services/auth.service';
@@ -99,6 +100,7 @@ function appNav(uuid: string): NavSection[] {
               <span class="hidden sm:inline" style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
             </a>
           }
+          @if (!shared.isShared()) {
           <a routerLink="/subscription"
              data-tour="ideploy-plan"
              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80 min-w-0"
@@ -112,6 +114,7 @@ function appNav(uuid: string): NavSection[] {
               }
             </span>
           </a>
+          }
           <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
             <i class="pi pi-box text-[10px]" style="color:var(--color-primary-400);"></i>
             <div class="flex flex-col gap-0.5">
@@ -219,6 +222,21 @@ function appNav(uuid: string): NavSection[] {
               <i class="pi pi-box text-xs" style="color:var(--color-primary-400);"></i>
               <span class="truncate text-sm font-semibold text-text-primary group-hover:text-primary-400 transition-colors">{{ app.name }}</span>
             </a>
+          } @else if (shared.spaces().length > 0) {
+            <!-- Projets IDEM partagés avec moi : choisir l'espace où l'on travaille. -->
+            <label for="ideploy-space" class="mb-1.5 block px-1 text-[10px] font-bold uppercase text-text-tertiary">{{ 'shell.space.label' | translate }}</label>
+            <select id="ideploy-space" class="!w-full" [value]="shared.activeTeamId() ?? ''" (change)="switchSpace($event)">
+              <option value="">{{ 'shell.space.mine' | translate }}</option>
+              @for (space of shared.spaces(); track space.projectId) {
+                <option [value]="space.teamId">{{ 'shell.space.shared' | translate: { project: space.projectName, owner: space.ownerName } }}</option>
+              }
+            </select>
+            @if (shared.active(); as space) {
+              <p class="mt-2 flex items-start gap-1.5 px-1 text-xs text-text-tertiary">
+                <i [class]="space.level === 'write' ? 'pi pi-pencil mt-0.5' : 'pi pi-eye mt-0.5'" aria-hidden="true"></i>
+                {{ (space.level === 'write' ? 'shell.space.canEdit' : 'shell.space.canView') | translate }}
+              </p>
+            }
           } @else {
             <div class="flex items-center gap-2 px-1">
               <i class="pi pi-users" style="color:var(--color-primary-400);"></i>
@@ -267,6 +285,7 @@ function appNav(uuid: string): NavSection[] {
             </div>
           </li>
 
+          @if (!shared.isShared()) {
           <!-- Always the account's own — never scoped to whichever application is open. -->
           <li data-tour="ideploy-nav-configuration">
             <ul role="list" class="flex flex-col gap-y-0.5">
@@ -281,6 +300,7 @@ function appNav(uuid: string): NavSection[] {
               }
             </ul>
           </li>
+          }
         </ul>
       </nav>
     </aside>
@@ -297,6 +317,7 @@ export class ShellComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private tour = inject(TourService);
+  protected readonly shared = inject(SharedSpaceService);
 
   protected readonly authUser = toSignal(this.auth.user$, { initialValue: null });
   protected readonly userMenuOpen = signal(false);
@@ -380,7 +401,10 @@ export class ShellComponent implements OnInit {
 
   protected readonly topNav = computed<NavSection[]>(() => {
     const app = this.appContext();
-    return app ? appNav(app.uuid) : this.globalNav;
+    if (app) return appNav(app.uuid);
+    // Espace partagé : seules les applications du projet sont ouvertes.
+    if (this.shared.isShared()) return [{ items: [{ path: '/applications', label: 'shell.nav.applications', icon: 'pi pi-box' }] }];
+    return this.globalNav;
   });
 
   /** An application tab is active only on its own `?tab=`. */
@@ -425,7 +449,25 @@ export class ShellComponent implements OnInit {
     void this.auth.logout();
   }
 
+  protected switchSpace(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.shared.switchTo(value ? Number(value) : null);
+  }
+
   ngOnInit(): void {
+    this.shared.load();
+    if (this.shared.isShared()) {
+      // Dans l'espace d'un projet partagé, tout le reste appartient au propriétaire.
+      this.keepInSharedScope(this.router.url);
+      this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => this.keepInSharedScope((e as NavigationEnd).urlAfterRedirects));
+      this.syncAppContext(this.router.url);
+      this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
+        this.syncAppContext((e as NavigationEnd).urlAfterRedirects);
+        this.navOpen.set(false);
+      });
+      this.api.me().subscribe({ next: (m) => this.me.set(m), error: () => undefined });
+      return;
+    }
     this.api.me().subscribe((m) => this.me.set(m));
     // Le portefeuille IDEM paie les compteurs : son solde remplace l'ancien nom de forfait.
     this.meters.list().subscribe({ error: () => undefined });
@@ -472,5 +514,10 @@ export class ShellComponent implements OnInit {
         if (this.appContext()?.uuid === uuid) this.appContext.set(null);
       },
     });
+  }
+
+  /** Un espace partagé n'ouvre que les applications : toute autre page y ramène. */
+  private keepInSharedScope(url: string): void {
+    if (!url.startsWith('/applications')) void this.router.navigateByUrl('/applications', { replaceUrl: true });
   }
 }

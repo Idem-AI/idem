@@ -67,7 +67,7 @@
                 <p class="min-w-0 flex-1 text-sm font-semibold text-[var(--color-text-primary)]">
                   {{ 'dashboard.showCommunication.video.formats.' + r.format + '.label' | translate }}
                 </p>
-                <button type="button" class="inner-button button-sm" [disabled]="!!downloading()" (click)="save(r.format)">
+                <button appWriteOnly type="button" class="inner-button button-sm" [disabled]="!!downloading()" (click)="save(r.format)">
                   @if (downloading()?.format === r.format) {
                     <idem-loader size="xs" />
                   } @else {
@@ -80,7 +80,7 @@
           </ul>
         }
         <div class="mt-4 flex justify-end">
-          <button type="button" class="button-ghost button-sm" (click)="confirmDelete() ? remove() : confirmDelete.set(true)">
+          <button appWriteOnly type="button" class="button-ghost button-sm" (click)="confirmDelete() ? remove() : confirmDelete.set(true)">
             <i class="pi pi-trash" aria-hidden="true"></i>
             {{ (confirmDelete() ? 'dashboard.showCommunication.video.detail.deleteConfirm' : 'dashboard.showCommunication.video.detail.delete') | translate }}
           </button>
@@ -150,7 +150,7 @@
     @if (reply(); as r) {
       <p class="vd-reply glass-card" role="status"><i class="pi pi-check" aria-hidden="true"></i> {{ r }}</p>
     }
-    <form class="vd-ask glass-card" (ngSubmit)="sendInstruction()">
+    <form appWriteOnly class="vd-ask glass-card" (ngSubmit)="sendInstruction()">
       <label class="sr-only" for="vd-revise">{{ 'dashboard.showCommunication.video.revise.title' | translate }}</label>
       <i class="pi pi-sparkles vd-ask-icon" aria-hidden="true"></i>
       <textarea
@@ -370,7 +370,7 @@
                         }
                       </div>
                       @if (stateOf(f) === 'ready') {
-                        <button type="button" class="outer-button button-sm" [disabled]="!!downloading()" (click)="save(f)">
+                        <button appWriteOnly type="button" class="outer-button button-sm" [disabled]="!!downloading()" (click)="save(f)">
                           @if (downloading()?.format === f) {
                             <idem-loader size="xs" />
                           } @else {
@@ -445,16 +445,16 @@
       @if (confirmDelete()) {
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <span class="text-[var(--color-text-secondary)]">{{ 'dashboard.showCommunication.video.detail.deleteAsk' | translate }}</span>
-          <button type="button" class="outer-button button-sm vd-danger" (click)="remove()">
+          <button appWriteOnly type="button" class="outer-button button-sm vd-danger" (click)="remove()">
             <i class="pi pi-trash" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.video.detail.deleteConfirm' | translate }}
           </button>
-          <button type="button" class="button-ghost button-sm" (click)="confirmDelete.set(false)">
+          <button appWriteOnly type="button" class="button-ghost button-sm" (click)="confirmDelete.set(false)">
             {{ 'common.cancel' | translate }}
           </button>
         </div>
       } @else {
-        <button type="button" class="button-ghost button-sm" (click)="confirmDelete.set(true)">
+        <button appWriteOnly type="button" class="button-ghost button-sm" (click)="confirmDelete.set(true)">
           <i class="pi pi-trash" aria-hidden="true"></i>
           {{ 'dashboard.showCommunication.video.detail.delete' | translate }}
         </button>

@@ -32,10 +32,11 @@ import { LivePagePreviewComponent } from './live-page-preview';
 import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityGateDirective } from '../../../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 @Component({
   selector: 'app-branding-generation',
-  imports: [
+  imports: [WriteOnlyDirective, 
     TranslateModule,
     PdfFormatSelectorComponent,
     IdemLoaderComponent,

@@ -75,7 +75,7 @@
                   m.name ||
                     ('dashboard.showCommunication.video.builder.media.kinds.' + m.kind | translate)
                 }}</span>
-                <button
+                <button appWriteOnly
                   type="button"
                   class="vdb-attached-remove"
                   [attr.aria-label]="
@@ -114,7 +114,7 @@
             'dashboard.showCommunication.video.builder.chat.attachHint' | translate
           }}</span>
           <div class="vdb-chat-actions">
-            <button
+            <button appWriteOnly
               type="button"
               class="inner-button button-sm"
               [disabled]="!canEnhance()"
@@ -135,7 +135,7 @@
         <p class="vdb-enhanced" role="status">
           <i class="pi pi-check-circle" aria-hidden="true"></i>
           {{ 'dashboard.showCommunication.video.builder.chat.enhanced' | translate }}
-          <button type="button" class="vdb-link" (click)="restoreRequest()">
+          <button appWriteOnly type="button" class="vdb-link" (click)="restoreRequest()">
             {{ 'dashboard.showCommunication.video.builder.chat.restore' | translate }}
           </button>
         </p>
@@ -504,7 +504,7 @@
       } @else {
         <!-- Le niveau de créativité se choisit sur le bouton (bulle), au moment de lancer. -->
         <div class="vb-footer-go">
-          <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="basePrice()">
+          <button appWriteOnly type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="basePrice()">
             <i class="pi pi-video" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
           </button>

@@ -5250,6 +5250,11 @@
           "body": "A showcase website, an API or any project already on GitHub.",
           "cta": "Choose in iDeploy"
         }
+      },
+      "shared": {
+        "title": "“{{project}}” online",
+        "body": "This project's applications live in iDeploy, in the space {{owner}} shares with you. You only see this project's applications there.",
+        "open": "Open in iDeploy"
       }
     }
   },
@@ -6466,6 +6471,10 @@
     "tabs": {
       "members": "Members",
       "groups": "Groups"
+    },
+    "policyOwner": {
+      "title": "Owner's agreement needed",
+      "body": "This project needs its owner ({{owner}}) to accept the terms before anything is generated. The agreement window opens for them on their next generation in this project."
     }
   }
 }

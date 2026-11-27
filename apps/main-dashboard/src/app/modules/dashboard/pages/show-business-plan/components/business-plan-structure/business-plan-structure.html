@@ -325,7 +325,7 @@
                         >
                           <i class="pi pi-arrow-down text-[11px]" aria-hidden="true"></i>
                         </button>
-                        <button
+                        <button appWriteOnly
                           type="button"
                           class="icon-button is-danger"
                           [disabled]="row.locked || outline().length <= limits().min"
@@ -389,7 +389,7 @@
                           </h4>
                           <div class="catalog-items">
                             @for (item of group.items; track item.key) {
-                              <button
+                              <button appWriteOnly
                                 type="button"
                                 class="catalog-item"
                                 [disabled]="isAtMax()"
@@ -423,13 +423,13 @@
                   <span>{{ 'dashboard.businessPlanStructure.actions.doneEditing' | translate }}</span>
                 </button>
                 @if (isEdited()) {
-                  <button type="button" class="panel-ghost-button" (click)="resetOutline()">
+                  <button appWriteOnly type="button" class="panel-ghost-button" (click)="resetOutline()">
                     <i class="pi pi-undo text-xs" aria-hidden="true"></i>
                     <span>{{ 'dashboard.businessPlanStructure.actions.reset' | translate }}</span>
                   </button>
                 }
               } @else {
-                <button type="button" class="panel-ghost-button" (click)="startComposing()">
+                <button appWriteOnly type="button" class="panel-ghost-button" (click)="startComposing()">
                   <i class="pi pi-sliders-h text-xs" aria-hidden="true"></i>
                   <span>{{ 'dashboard.businessPlanStructure.actions.customize' | translate }}</span>
                 </button>

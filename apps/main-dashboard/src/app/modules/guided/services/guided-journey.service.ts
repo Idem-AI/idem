@@ -6,6 +6,8 @@ import { FinanceService } from '../../dashboard/services/finance.service';
 import { CommunicationService } from '../../dashboard/services/ai-agents/communication.service';
 import { DeploymentService } from '../../dashboard/services/deployment.service';
 import { ProjectService } from '../../dashboard/services/project.service';
+import { OWNER_ACCESS } from '@idem/shared-models';
+import { canOpenRoute } from '../../../shared/utils/project-space-routes';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
   GUIDED_ALWAYS_ALLOWED_PATHS,
@@ -190,6 +192,21 @@ export class GuidedJourneyService {
 
   readonly definitions = GUIDED_STEPS;
 
+  /**
+   * Les étapes que cette personne peut ouvrir sur ce projet. Membre d'une
+   * équipe : un espace fermé n'est pas une étape de son parcours — il ne la
+   * verrait que pour tomber sur une page introuvable.
+   */
+  readonly visibleDefinitions = computed(() => {
+    const access = this.project()?.access ?? OWNER_ACCESS;
+    return this.definitions.filter((definition) => canOpenRoute(access, definition.route, 'read'));
+  });
+
+  /** L'étape se fait-elle (et pas seulement se consulte) avec ces droits ? */
+  private writable(definition: GuidedStepDefinition): boolean {
+    return canOpenRoute(this.project()?.access ?? OWNER_ACCESS, definition.route, 'write');
+  }
+
   /** Projet courant, alimenté par la page du mode Assisté. */
   readonly project = signal<ProjectModel | null>(null);
   /** Modules vivant derrière leur propre endpoint (finance, communication…). */
@@ -207,9 +224,11 @@ export class GuidedJourneyService {
 
     let currentAssigned = false;
 
-    return this.definitions.map((definition, index) => {
+    return this.visibleDefinitions().map((definition, index) => {
       const done = definition.isDone(project, external);
-      const isSkipped = !done && skipped.has(definition.id);
+      // Une étape qu'on ne peut que consulter ne bloque pas le parcours : elle
+      // est passée tant que le propriétaire (ou un autre membre) ne l'a pas faite.
+      const isSkipped = !done && (skipped.has(definition.id) || !this.writable(definition));
 
       let status: GuidedStep['status'];
       if (done) {
@@ -236,7 +255,7 @@ export class GuidedJourneyService {
     () => this.steps().filter((step) => step.status === 'done').length,
   );
 
-  readonly totalCount = computed(() => this.definitions.length);
+  readonly totalCount = computed(() => this.visibleDefinitions().length);
 
   /** Progression en pourcentage (étapes passées comprises, pour ne pas bloquer la barre). */
   readonly progress = computed(() => {

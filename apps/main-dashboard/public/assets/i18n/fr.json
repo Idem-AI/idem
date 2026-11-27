@@ -5253,6 +5253,11 @@
           "body": "Un site vitrine, une API ou tout projet déjà sur GitHub.",
           "cta": "Choisir dans iDeploy"
         }
+      },
+      "shared": {
+        "title": "Les mises en ligne de « {{project}} »",
+        "body": "Les applications de ce projet sont dans iDeploy, dans l'espace que {{owner}} partage avec vous. Vous y voyez seulement celles de ce projet.",
+        "open": "Ouvrir dans iDeploy"
       }
     }
   },
@@ -6432,6 +6437,10 @@
     "tabs": {
       "members": "Membres",
       "groups": "Groupes"
+    },
+    "policyOwner": {
+      "title": "Accord du propriétaire nécessaire",
+      "body": "Ce projet attend que son propriétaire ({{owner}}) accepte les conditions d'utilisation avant toute génération. La fenêtre d'accord s'ouvre pour lui à sa prochaine génération sur ce projet."
     }
   }
 }

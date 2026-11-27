@@ -20,6 +20,7 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { AdvisorService } from '../../services/ai-agents/advisor.service';
 import { AdvisorMessage } from '../../models/advisor.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 const SUGGESTED_PROMPTS_FR = [
   'Analyse mon projet et dis-moi ce qu’il manque pour démarrer sérieusement.',
@@ -31,7 +32,7 @@ const SUGGESTED_PROMPTS_FR = [
 @Component({
   selector: 'app-advisor',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MarkdownModule, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, CommonModule, FormsModule, TranslateModule, MarkdownModule, IdemLoaderComponent],
   templateUrl: './advisor.html',
   styleUrls: ['./advisor-markdown.css'],
   encapsulation: ViewEncapsulation.None,

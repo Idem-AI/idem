@@ -39,6 +39,7 @@ import { priceVideo, VideoDuration, VideoFormat, VideoOptions, VideoType } from 
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityGateDirective } from '../../../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** Formats de contenu qui sont des vidéos. */
 const VIDEO_CONTENT_FORMATS = ['reel', 'short-video'];
@@ -79,7 +80,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [NgTemplateOutlet, FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityGateDirective],
+  imports: [WriteOnlyDirective, NgTemplateOutlet, FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityGateDirective],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,10 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
-import { filter, map } from 'rxjs';
 import { CurrentProjectService } from '../../../../shared/services/current-project.service';
-import { isReadOnlyRoute, routeSpace } from '../../../../shared/utils/project-space-routes';
+import { ProjectAccessUiService } from '../../services/project-access-ui.service';
 
 /**
  * « Vous consultez cet espace en lecture seule. »
@@ -39,24 +36,16 @@ import { isReadOnlyRoute, routeSpace } from '../../../../shared/utils/project-sp
   `,
 })
 export class ReadOnlyNoticeComponent {
-  private readonly router = inject(Router);
   private readonly projects = inject(CurrentProjectService);
   private readonly dismissed = signal<ReadonlySet<string>>(new Set());
 
-  private readonly url = toSignal(
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      map((event) => event.urlAfterRedirects),
-    ),
-    { initialValue: this.router.url },
-  );
+  private readonly ui = inject(ProjectAccessUiService);
 
   protected readonly ownerName = computed(() => this.projects.access()?.ownerName ?? '');
 
   protected readonly visible = computed(() => {
-    const url = this.url();
-    if (!isReadOnlyRoute(this.projects.access(), url)) return null;
-    const space = routeSpace(url);
+    if (!this.ui.readOnly()) return null;
+    const space = this.ui.space();
     return space && !this.dismissed().has(space) ? space : null;
   });
 

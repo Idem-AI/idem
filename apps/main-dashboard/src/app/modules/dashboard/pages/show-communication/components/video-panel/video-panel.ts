@@ -21,6 +21,7 @@ import { MotionVideo, VideoOptions } from '../../../../models/motion-video.model
 import { VideoBuilder } from '../video-builder/video-builder';
 import { VideoKora } from '../video-kora/video-kora';
 import { urlFlag } from '../../url-state';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 type View = { kind: 'list' } | { kind: 'create' };
 
@@ -32,7 +33,7 @@ type View = { kind: 'list' } | { kind: 'create' };
  */
 @Component({
   selector: 'app-video-panel',
-  imports: [TranslateModule, IdemLoaderComponent, VideoBuilder, VideoKora],
+  imports: [WriteOnlyDirective, TranslateModule, IdemLoaderComponent, VideoBuilder, VideoKora],
   templateUrl: './video-panel.html',
   styleUrl: './video-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

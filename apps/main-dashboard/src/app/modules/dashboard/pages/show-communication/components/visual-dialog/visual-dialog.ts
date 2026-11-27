@@ -22,6 +22,7 @@ import {
 import { FLYER_FORMATS, channelIcon, todayIso } from '../../communication-ui';
 import { VisualPreview } from '../visual-preview/visual-preview';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 const NETWORKS: SocialNetwork[] = ['linkedin', 'x'];
 
@@ -40,7 +41,7 @@ const NETWORKS: SocialNetwork[] = ['linkedin', 'x'];
  */
 @Component({
   selector: 'app-visual-dialog',
-  imports: [FormsModule, TranslateModule, VisualPreview, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, FormsModule, TranslateModule, VisualPreview, IdemLoaderComponent],
   templateUrl: './visual-dialog.html',
   styleUrl: './visual-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

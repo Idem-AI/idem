@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { SimulationSummary, SimulationVerdict } from '../../models/simulation.model';
 import { SimulationService } from '../../services/simulation.service';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 /**
  * Récapitulatif des simulations du projet.
@@ -17,7 +18,7 @@ import { SimulationService } from '../../services/simulation.service';
 @Component({
   selector: 'app-simulations-overview',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [WriteOnlyDirective, CommonModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulations-overview.html',
 })

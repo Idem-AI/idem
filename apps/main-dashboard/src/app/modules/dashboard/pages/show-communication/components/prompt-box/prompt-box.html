@@ -1,4 +1,4 @@
-<form class="pb" (ngSubmit)="submit()">
+<form appWriteOnly class="pb" (ngSubmit)="submit()">
   <div class="pb-box glass-card">
     <label class="sr-only" [attr.for]="id + '-text'">
       {{ 'dashboard.showCommunication.prompt.label' | translate }}

@@ -32,6 +32,8 @@ export function buildCorsOptions(): CorsOptions {
       'Accept',
       'X-Requested-With',
       'X-API-Key',
+      // Espace d'un projet IDEM partagé (équipe du propriétaire, voir idem-share.service).
+      'X-Current-Team',
     ],
     exposedHeaders: ['Content-Type', 'Cache-Control', 'X-Accel-Buffering'],
     maxAge: 600,

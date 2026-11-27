@@ -418,7 +418,14 @@
     "replayTour": "Replay the tour",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "navigation": "Main navigation"
+    "navigation": "Main navigation",
+    "space": {
+      "label": "Space",
+      "mine": "My space",
+      "shared": "{{project}} · shared by {{owner}}",
+      "canEdit": "You can manage and redeploy this project's applications.",
+      "canView": "You can view this project's applications without changing them."
+    }
   },
   "applications": {
     "open": "Open",

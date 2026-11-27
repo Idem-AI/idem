@@ -8,6 +8,7 @@ import {
   StrategyInputKey,
 } from '../../../../models/communication.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /**
  * MA FAÇON DE COMMUNIQUER — à qui la marque parle, sur quel ton, sur quels réseaux.
@@ -25,7 +26,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
  */
 @Component({
   selector: 'app-brand-voice-panel',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, FormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './brand-voice-panel.html',
   styleUrl: './brand-voice-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

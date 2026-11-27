@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { GenerationCompleteness } from '../../models/generation-completeness';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 /**
  * Panneau d'état d'une génération IA par sections (business plan, pitch deck,
@@ -20,7 +21,7 @@ import { GenerationCompleteness } from '../../models/generation-completeness';
  */
 @Component({
   selector: 'app-generation-status-panel',
-  imports: [TranslateModule],
+  imports: [WriteOnlyDirective, TranslateModule],
   templateUrl: './generation-status-panel.html',
   styleUrl: './generation-status-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

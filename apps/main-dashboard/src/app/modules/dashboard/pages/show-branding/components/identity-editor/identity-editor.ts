@@ -45,6 +45,7 @@ import { LogoImportResponse, LogoImportService } from '../../../../services/logo
 import { CatalogFont, TypographyService } from '../../../../../../shared/services/typography.service';
 import { TypographyFontImportComponent } from '../../../create-project/components/typography-selection/typography-font-import/typography-font-import';
 import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 type LogoChoice =
   | { kind: 'current' }
@@ -70,7 +71,7 @@ const EXIT_MS = { drawer: 240, modal: 160 } as const;
  */
 @Component({
   selector: 'app-identity-editor',
-  imports: [
+  imports: [WriteOnlyDirective, 
     TranslateModule,
     IdemLoaderComponent,
     NgTemplateOutlet,

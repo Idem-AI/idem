@@ -22,6 +22,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ProjectModel, ProjectTeamMember } from '@idem/shared-models';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { ProjectService } from '../../../../services/project.service';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /**
  * Étape 2 du business plan : les coordonnées et l'équipe.
@@ -42,7 +43,7 @@ import { ProjectService } from '../../../../services/project.service';
 @Component({
   selector: 'app-additional-info-form',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './additional-info-form.html',
   styleUrl: './additional-info-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

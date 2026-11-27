@@ -28,7 +28,7 @@
 
           @if (hasTemplate()) {
             <div class="flex flex-wrap items-center gap-2.5">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2"
                 (click)="editTemplate()"
@@ -37,7 +37,7 @@
                 {{ 'dashboard.businessCards.actions.editTemplate' | translate }}
               </button>
               <!-- Régénérer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
-              <button
+              <button appWriteOnly
                 type="button"
                 class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2 disabled:opacity-50"
                 appCreativityGate
@@ -169,7 +169,7 @@
 
                 <!-- Lancer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
                 <div class="flex flex-wrap items-center gap-2.5">
-                  <button
+                  <button appWriteOnly
                     type="button"
                     class="inner-button"
                     appCreativityGate
@@ -219,7 +219,7 @@
                 {{ 'dashboard.businessCards.people.title' | translate }}
                 <span class="text-sm font-normal text-text-tertiary">({{ holders().length }})</span>
               </h2>
-              <button
+              <button appWriteOnly
                 type="button"
                 class="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors flex items-center justify-center"
                 (click)="startCreate()"
@@ -249,7 +249,7 @@
                 <p class="text-sm text-text-tertiary mb-4">
                   {{ 'dashboard.businessCards.people.empty' | translate }}
                 </p>
-                <button type="button" class="outer-button !text-xs !py-2 !px-4" (click)="startCreate()">
+                <button appWriteOnly type="button" class="outer-button !text-xs !py-2 !px-4" (click)="startCreate()">
                   {{ 'dashboard.businessCards.people.add' | translate }}
                 </button>
               </div>
@@ -282,7 +282,7 @@
                           }
                         </span>
                       </button>
-                      <button
+                      <button appWriteOnly
                         type="button"
                         class="w-8 h-8 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors shrink-0"
                         (click)="startEdit(holder)"
@@ -292,7 +292,7 @@
                       >
                         <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
                       </button>
-                      <button
+                      <button appWriteOnly
                         type="button"
                         class="w-8 h-8 rounded-lg text-text-tertiary hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 disabled:opacity-40"
                         (click)="deleteHolder(holder, $event)"
@@ -372,7 +372,7 @@
                     <p class="text-sm text-text-tertiary">{{ holder.jobTitle }}</p>
                   }
                 </div>
-                <button
+                <button appWriteOnly
                   type="button"
                   class="glass-card px-4 py-2 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2"
                   (click)="startEdit(holder)"
@@ -428,7 +428,7 @@
                 <p class="text-sm text-text-secondary mb-6 max-w-md mx-auto">
                   {{ 'dashboard.businessCards.people.emptyDetail.subtitle' | translate }}
                 </p>
-                <button type="button" class="inner-button mx-auto" (click)="startCreate()">
+                <button appWriteOnly type="button" class="inner-button mx-auto" (click)="startCreate()">
                   <i class="pi pi-plus" aria-hidden="true"></i>
                   <span>{{ 'dashboard.businessCards.people.add' | translate }}</span>
                 </button>

@@ -11,6 +11,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 
 import { STRATEGY_INPUT_KEYS, StrategyInputKey } from '../../../../models/communication.model';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /**
  * Dit pourquoi la façon de communiquer ne peut pas encore s'écrire.
@@ -29,7 +30,7 @@ import { STRATEGY_INPUT_KEYS, StrategyInputKey } from '../../../../models/commun
  */
 @Component({
   selector: 'app-strategy-inputs-dialog',
-  imports: [TranslateModule],
+  imports: [WriteOnlyDirective, TranslateModule],
   templateUrl: './strategy-inputs-dialog.html',
   styleUrl: './strategy-inputs-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -4,6 +4,7 @@ import logger from '../../config/logger';
 import { ProjectGroup, ProjectGroupDocument, ProjectMember, ProjectMemberDocument } from '../../schemas/projectTeam.schema';
 import { transactionalEmailService } from '../email/email.service';
 import { projectInvitation } from '../email/templates';
+import { resyncIfStale, syncIdeploySharesLater } from './ideploy-share.service';
 import { firstNameOf } from '../email/email-layout';
 import {
   effectivePermissions,
@@ -166,6 +167,8 @@ class TeamService {
 
   async getTeam(projectId: string, uid: string): Promise<ProjectTeamView> {
     const project = await this.ownedProject(projectId, uid);
+    // Le propriétaire ouvre sa page Équipe : l'occasion de rattraper iDeploy.
+    resyncIfStale(projectId);
     const [members, groups] = await Promise.all([
       ProjectMember.find({ projectId }).sort({ invitedAt: 1 }).lean(),
       ProjectGroup.find({ projectId }).sort({ createdAt: 1 }).lean(),
@@ -331,6 +334,7 @@ class TeamService {
       }
     );
     invalidateProjectAccess(projectId);
+    syncIdeploySharesLater(projectId);
     return this.getTeam(projectId, uid);
   }
 
@@ -340,6 +344,7 @@ class TeamService {
     const member = await this.memberOf(projectId, memberId);
     await ProjectMember.deleteOne({ _id: member._id });
     invalidateProjectAccess(projectId);
+    syncIdeploySharesLater(projectId);
     logger.info('team.member_removed', { event: 'team.member_removed', projectId });
     return this.getTeam(projectId, uid);
   }
@@ -374,6 +379,7 @@ class TeamService {
     }
     await ProjectGroup.updateOne({ _id: group._id }, { $set: update });
     invalidateProjectAccess(projectId);
+    syncIdeploySharesLater(projectId);
     return this.getTeam(projectId, uid);
   }
 
@@ -391,6 +397,7 @@ class TeamService {
     );
     await ProjectGroup.deleteOne({ _id: group._id });
     invalidateProjectAccess(projectId);
+    syncIdeploySharesLater(projectId);
     return this.getTeam(projectId, uid);
   }
 
@@ -466,6 +473,7 @@ class TeamService {
     const status = accept ? 'active' : 'declined';
     await ProjectMember.updateOne({ _id: member._id }, { $set: { status, respondedAt: new Date() } });
     invalidateProjectAccess(member.projectId);
+    syncIdeploySharesLater(member.projectId);
     logger.info('team.invitation_answered', { event: 'team.invitation_answered', projectId: member.projectId, status });
     return { projectId: member.projectId, status };
   }
@@ -475,6 +483,7 @@ class TeamService {
     const result = await ProjectMember.deleteOne({ projectId, userId: uid });
     if (result.deletedCount === 0) throw new TeamError('member_not_found', 404);
     invalidateProjectAccess(projectId);
+    syncIdeploySharesLater(projectId);
   }
 }
 

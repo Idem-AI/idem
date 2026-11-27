@@ -26,6 +26,7 @@ import {
 } from '../../../models/finance.model';
 import { FinanceService } from '../../../services/finance.service';
 import { FinanceIllustrationComponent } from '../finance-illustration/finance-illustration';
+import { WriteOnlyDirective } from '../../../../team/directives/write-only.directive';
 
 type ImportStage = 'pick' | 'reading' | 'preview' | 'saving' | 'error';
 
@@ -64,7 +65,7 @@ const VISIBLE_ITEMS = 5;
  */
 @Component({
   selector: 'app-finance-import-dialog',
-  imports: [TranslateModule, IdemLoaderComponent, FinanceIllustrationComponent],
+  imports: [WriteOnlyDirective, TranslateModule, IdemLoaderComponent, FinanceIllustrationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-import-dialog.html',
   styleUrl: './finance-import-dialog.css',

@@ -37,6 +37,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { LegalIllustrationComponent } from './components/legal-illustration/legal-illustration';
 import { LegalFormSectionComponent } from './components/legal-form-section/legal-form-section';
 import { downloadName } from '../../../../shared/utils/download-name';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 type RequiredFieldKey =
   | 'country'
@@ -95,7 +96,7 @@ const isStatutes = (type: string): boolean => type === 'statuts' || type in LEGA
  */
 @Component({
   selector: 'app-legal-docs',
-  imports: [
+  imports: [WriteOnlyDirective, 
     OwnershipBarComponent,
     DatePipe,
     FormsModule,

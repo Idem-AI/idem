@@ -13,6 +13,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 import { SheetRow } from '../finance-paste/finance-paste.draft';
 import { isHeaderRow, parseClipboard } from '../finance-paste/finance-paste.parser';
+import { WriteOnlyDirective } from '../../../../team/directives/write-only.directive';
 
 interface Cell {
   r: number;
@@ -46,7 +47,7 @@ const HISTORY_LIMIT = 100;
  */
 @Component({
   selector: 'app-finance-sheet-grid',
-  imports: [TranslateModule],
+  imports: [WriteOnlyDirective, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-sheet-grid.html',
   styleUrl: './finance-sheet-grid.css',

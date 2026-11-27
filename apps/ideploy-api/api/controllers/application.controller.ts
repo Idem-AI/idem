@@ -18,8 +18,11 @@ import { resolveWorkspaceDestination, STANDALONE_DOCKER_TYPE } from '../services
 export async function listApplications(req: CustomRequest, res: Response): Promise<void> {
   try {
     const envId = req.query.environment_id ? Number(req.query.environment_id) : undefined;
-    const apps = await appService.listApplications(req.user!.currentTeamId!, envId);
-    ok(res, apps.map((a) => ({ ...a, link: appService.computeAppLink(a) })));
+    const all = await appService.listApplications(req.user!.currentTeamId!, envId);
+    // Membre d'un projet IDEM partagé : seulement les applications du projet.
+    const scope = req.user!.idemScope;
+    const apps = scope ? all.filter((a) => scope.apps.has(String((a as { uuid?: string }).uuid))) : all;
+    ok(res, apps.map((a) => ({ ...a, link: appService.computeAppLink(a), ...(scope ? { sharedLevel: scope.apps.get(String((a as { uuid?: string }).uuid)) } : {}) })));
   } catch (err) {
     logger.error('listApplications error', { message: (err as Error).message });
     fail(res, 'Failed to list applications');

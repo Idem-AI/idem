@@ -132,7 +132,7 @@
           <div class="vd-chips">
             @for (format of formats; track format) {
               @if (format !== shown().format) {
-                <button
+                <button appWriteOnly
                   type="button"
                   class="outer-button button-sm"
                   [disabled]="isBusy()"
@@ -154,7 +154,7 @@
           @if (canPublish()) {
             <div class="vd-chips">
               @for (network of networks; track network) {
-                <button
+                <button appWriteOnly
                   type="button"
                   class="outer-button button-sm"
                   [disabled]="publishingNetwork() === network"

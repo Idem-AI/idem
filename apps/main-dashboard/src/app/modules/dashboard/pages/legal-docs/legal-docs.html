@@ -207,7 +207,7 @@
                                 }
                                 <span class="hidden md:inline">PDF</span>
                               </button>
-                              <button
+                              <button appWriteOnly
                                 type="button"
                                 class="button-icon"
                                 (click)="remove(doc)"
@@ -413,7 +413,7 @@
                           [ngModel]="f.name"
                           (ngModelChange)="updateFounder(i, 'name', $event)"
                         />
-                        <button
+                        <button appWriteOnly
                           type="button"
                           class="button-icon md:order-last"
                           (click)="removeFounder(i)"
@@ -439,7 +439,7 @@
                     }
                   </div>
                   @if (!singlePartner() || (context().founders ?? []).length === 0) {
-                    <button type="button" class="outer-button button-sm mt-3" (click)="addFounder()">
+                    <button appWriteOnly type="button" class="outer-button button-sm mt-3" (click)="addFounder()">
                       <i class="pi pi-plus" aria-hidden="true"></i>
                       {{ 'dashboard.legalDocs.fields.addFounder' | translate }}
                     </button>
@@ -462,7 +462,7 @@
                   </p>
                 }
               </div>
-              <button type="button" class="inner-button shrink-0" [disabled]="!canGenerate()" (click)="generate()">
+              <button appWriteOnly type="button" class="inner-button shrink-0" [disabled]="!canGenerate()" (click)="generate()">
                 {{ 'dashboard.legalDocs.actions.generate' | translate: { count: selected().size } }}
               </button>
             </div>

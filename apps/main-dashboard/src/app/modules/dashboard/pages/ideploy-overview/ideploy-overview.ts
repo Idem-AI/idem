@@ -9,6 +9,7 @@ import { ErrorStateComponent } from '../../../../shared/components/error-state/e
 import { IDeployApplication, IDeploySummary } from '../../models/ideploy.model';
 import { IDeployService } from '../../services/ideploy.service';
 import { SiteAppIllustrationComponent } from '../development/site-app-illustration';
+import { CurrentProjectService } from '../../../../shared/services/current-project.service';
 
 /** L'état d'une ressource, dit avec des mots et non avec le code d'iDeploy. */
 type RunState = 'running' | 'deploying' | 'restarting' | 'stopped' | 'unknown';
@@ -38,6 +39,21 @@ export class IDeployOverview implements OnInit {
   private readonly ideployService = inject(IDeployService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ideployUrl = environment.services.ideploy.url;
+  protected readonly currentProject = inject(CurrentProjectService);
+
+  /**
+   * Membre de l'équipe d'un autre : ses mises en ligne vivent dans l'espace
+   * iDeploy du propriétaire, ouvert au membre pour les seules applications du
+   * projet. On n'affiche pas son propre iDeploy, qui n'a rien à voir.
+   */
+  protected readonly isMember = computed(() => this.currentProject.access()?.role === 'member');
+
+  /** iDeploy, ouvert directement dans l'espace partagé de ce projet. */
+  protected openSharedSpace(): void {
+    const projectId = this.currentProject.selectedId();
+    if (!projectId) return;
+    window.open(`${this.ideployUrl}/applications?idemProject=${encodeURIComponent(projectId)}`, '_blank', 'noopener');
+  }
 
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
@@ -63,6 +79,10 @@ export class IDeployOverview implements OnInit {
   });
 
   ngOnInit(): void {
+    if (this.currentProject.access()?.role === 'member') {
+      this.loading.set(false);
+      return;
+    }
     this.load();
   }
 

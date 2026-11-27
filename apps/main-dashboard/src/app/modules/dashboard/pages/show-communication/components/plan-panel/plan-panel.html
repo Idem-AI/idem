@@ -102,7 +102,7 @@
             }
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <button
+            <button appWriteOnly
               type="button"
               class="outer-button button-sm"
               [disabled]="generatingPlanId() === plan.id"
@@ -372,7 +372,7 @@
           <p class="text-sm text-[var(--color-text-secondary)]">
             {{ 'dashboard.showCommunication.plans.notGenerated' | translate }}
           </p>
-          <button type="button" class="inner-button mt-4" (click)="generate(plan.id)">
+          <button appWriteOnly type="button" class="inner-button mt-4" (click)="generate(plan.id)">
             <i class="pi pi-sparkles" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.plans.generate' | translate }}
           </button>

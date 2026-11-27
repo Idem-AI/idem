@@ -7,6 +7,7 @@ import {
   Flyer,
 } from '../../../../models/communication.model';
 import { PromptBox } from '../prompt-box/prompt-box';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** Les trois étapes, dans l'ordre où on les conseille. */
 export type JourneyStepId = 'strategy' | 'calendar' | 'content';
@@ -43,7 +44,7 @@ export type HomeAction =
  */
 @Component({
   selector: 'app-communication-home',
-  imports: [TranslateModule, PromptBox],
+  imports: [WriteOnlyDirective, TranslateModule, PromptBox],
   templateUrl: './communication-home.html',
   styleUrl: './communication-home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

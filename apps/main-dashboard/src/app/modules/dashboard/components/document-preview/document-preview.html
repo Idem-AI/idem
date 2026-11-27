@@ -74,7 +74,7 @@
               </span>
             }
           </span>
-          <button
+          <button appWriteOnly
             type="button"
             class="dp-foot-btn"
             data-creativity-launch
@@ -108,12 +108,12 @@
             <i class="pi {{ kindIcon() }}" aria-hidden="true"></i>
             {{ 'dashboard.documentPreview.kinds.' + kind() | translate }}
           </span>
-          <button #popoverEdit type="button" class="dp-popover-edit" (click)="edit()">
+          <button appWriteOnly #popoverEdit type="button" class="dp-popover-edit" (click)="edit()">
             <i class="pi pi-pencil" aria-hidden="true"></i>
             {{ 'dashboard.documentPreview.popover.edit' | translate }}
           </button>
           @if (tracksGeneration() && selectedPage(); as page) {
-            <button
+            <button appWriteOnly
               type="button"
               class="dp-popover-regen"
               data-creativity-launch
@@ -359,7 +359,7 @@
                       (input)="onRelayoutNote($event)"
                       (keydown.enter)="relayout()"
                     />
-                    <button type="button" class="inner-button button-sm mt-2 self-start" [disabled]="relayoutState() === 'working'" (click)="relayout()">
+                    <button appWriteOnly type="button" class="inner-button button-sm mt-2 self-start" [disabled]="relayoutState() === 'working'" (click)="relayout()">
                       {{ 'dashboard.documentPreview.relayout.run' | translate }}
                     </button>
                   </span>
@@ -371,7 +371,7 @@
       }
     }
 
-    <button
+    <button appWriteOnly
       type="button"
       class="dp-action dp-edit"
       [disabled]="!ready()"

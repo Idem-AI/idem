@@ -33,6 +33,7 @@ import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /**
  * Sections affichées par la console tant que la structure n'a pas été choisie.
@@ -57,7 +58,7 @@ const DEFAULT_BUSINESS_PLAN_SECTIONS = [
 @Component({
   selector: 'app-business-plan-generation',
   standalone: true,
-  imports: [
+  imports: [WriteOnlyDirective, 
     ErrorStateComponent,
     AdditionalInfoFormComponent,
     AgentResearchConsoleComponent,
