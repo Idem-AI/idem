@@ -44,7 +44,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
           </ul>
         }
 
-        <form class="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="volumeForm" (ngSubmit)="addVolume()">
+        <form class="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="volumeForm" (ngSubmit)="addVolume()">
           <div>
             <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="vol-name">{{ 'applications.detail.volumeNameLabel' | translate }}</label>
             <input type="text" id="vol-name" [placeholder]="'applications.detail.volumeNamePlaceholder' | translate" formControlName="name" />

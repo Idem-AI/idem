@@ -58,9 +58,9 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           <div class="space-y-4">
             @for (key of keys(); track key.uuid) {
               <div class="glass-card p-4">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="min-w-0">
-                    <div class="font-semibold">{{ key.name }}</div>
+                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <div class="min-w-0 flex-1 basis-48">
+                    <div class="font-semibold break-words">{{ key.name }}</div>
                     @if (key.description) {
                       <div class="mt-1 text-sm" style="color: var(--color-text-secondary)">{{ key.description }}</div>
                     }

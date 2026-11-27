@@ -38,7 +38,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
       <!-- 1. Le solde -->
       <section class="glass-card mb-6 flex flex-wrap items-center gap-6 p-5">
         <app-illustration name="cowries" [width]="96" />
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 basis-48">
           <p class="text-sm" style="color: var(--color-text-tertiary)">{{ 'meters.wallet' | translate }}</p>
           <p class="text-2xl font-bold tabular-nums">{{ v.walletXaf | number: '1.0-0' }} F</p>
           <p class="text-sm" style="color: var(--color-text-secondary)">

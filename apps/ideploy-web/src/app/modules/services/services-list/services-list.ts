@@ -82,7 +82,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
                       <i class="pi pi-box" style="color:var(--color-text-secondary);"></i>
                     }
                   </span>
-                  <div class="min-w-0 flex-1">
+                  <div class="min-w-0 flex-1 basis-48">
                     <div class="flex flex-wrap items-center gap-2">
                       <a class="truncate font-semibold text-text-primary hover:underline" [routerLink]="['/services', svc.uuid]">{{ svc.name }}</a>
                       <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium" [style.color]="status(svc).color" style="background:color-mix(in srgb, currentColor 10%, transparent);">
@@ -96,7 +96,7 @@ type StatusFilter = 'all' | 'running' | 'exited' | 'partial';
                       }
                     </div>
                   </div>
-                  <div class="flex gap-2">
+                  <div class="ml-auto flex gap-2">
                     <button type="button" class="outer-button button-sm" [disabled]="acting() === svc.uuid" (click)="action(svc, isActive(svc) ? 'stop' : 'start')">
                       @if (acting() === svc.uuid) { <idem-loader size="xs" /> } @else { <i class="pi mr-1.5 text-xs" [class.pi-stop]="isActive(svc)" [class.pi-play]="!isActive(svc)"></i> }
                       {{ (isActive(svc) ? 'services.stop' : 'services.start') | translate }}

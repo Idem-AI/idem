@@ -84,7 +84,7 @@ const laterKey = (uuid: string) => `idem-project-later:${uuid}`;
         @if (logoSrc(); as src) {
           <img [src]="src" alt="" width="40" height="40" class="h-10 w-10 flex-none object-contain" />
         }
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 basis-48">
           <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'idemProject.linked.label' | translate }}</p>
           <p class="truncate font-semibold text-text-primary">{{ p.name }}</p>
           @if (p.artDirection; as da) {
@@ -104,7 +104,7 @@ const laterKey = (uuid: string) => `idem-project-later:${uuid}`;
           <idem-loader size="sm" />
           <p class="font-semibold text-text-primary">{{ 'idemProject.running.title' | translate: { url: shortUrl() } }}</p>
         </div>
-        <ol class="mt-4 grid gap-2 text-sm sm:grid-cols-5">
+        <ol class="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-5">
           @for (s of steps; track s; let i = $index) {
             @if (s !== 'done') {
               <li class="flex items-center gap-2" [style.color]="i <= stepIndex() ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)'">
@@ -123,12 +123,12 @@ const laterKey = (uuid: string) => `idem-project-later:${uuid}`;
         <p class="mt-3 text-xs" style="color:var(--color-text-secondary);">{{ 'idemProject.running.hint' | translate }}</p>
       </section>
     } @else if (phase() === 'done' && created(); as p) {
-      <section class="glass-card grid gap-5 p-5 md:grid-cols-[120px_1fr]" aria-live="polite">
+      <section class="glass-card grid grid-cols-1 gap-5 p-5 md:grid-cols-[120px_1fr]" aria-live="polite">
         <app-illustration name="stamp" [width]="120" class="hidden md:block" />
         <div class="min-w-0">
           <h2 class="text-lg font-semibold text-text-primary">{{ 'idemProject.done.title' | translate: { name: p.name } }}</h2>
           <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'idemProject.done.body' | translate }}</p>
-          <dl class="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             @if (p.artDirection; as da) {
               <div>
                 <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'idemProject.done.direction' | translate }}</dt>
@@ -168,7 +168,7 @@ const laterKey = (uuid: string) => `idem-project-later:${uuid}`;
       </section>
     } @else if (offer()) {
       <!-- La proposition : un projet IDEM tiré du site en ligne. -->
-      <section class="glass-card grid gap-5 p-5 md:grid-cols-[120px_1fr]">
+      <section class="glass-card grid grid-cols-1 gap-5 p-5 md:grid-cols-[120px_1fr]">
         <app-illustration name="stamp" [width]="120" class="hidden md:block" />
         <form class="min-w-0" (submit)="$event.preventDefault(); start()">
           <h2 class="text-lg font-semibold text-text-primary">{{ 'idemProject.offer.title' | translate }}</h2>

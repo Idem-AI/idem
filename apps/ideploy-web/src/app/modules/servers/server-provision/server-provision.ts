@@ -41,7 +41,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
     </a>
 
     <div class="mb-6">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+      <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
         {{ 'provision.title' | translate }}
       </h1>
       <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'provision.subtitle' | translate }}</p>
@@ -68,7 +68,7 @@ const IMAGES = ['ubuntu-24.04', 'ubuntu-22.04', 'debian-12'] as const;
         <a class="inner-button mt-3 inline-flex" routerLink="/security/tokens">{{ 'provision.addToken' | translate }}</a>
       </div>
     } @else {
-      <form class="grid gap-4 lg:grid-cols-2" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="grid grid-cols-1 gap-4 lg:grid-cols-2" [formGroup]="form" (ngSubmit)="submit()">
         <section class="glass-card p-4">
           <h2 class="mb-3 text-sm font-semibold">{{ 'provision.provider' | translate }}</h2>
           <div class="mb-3">

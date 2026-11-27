@@ -26,7 +26,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const APP_ROUTE = /^\/applications\/([^/]+)/;
+const APP_ROUTE = /^\/applications\/([^/?#]+)/;
 
 /** The application-scoped nav shown while inside one app, Vercel's own project sidebar. */
 function appNav(uuid: string): NavSection[] {
@@ -66,31 +66,45 @@ function appNav(uuid: string): NavSection[] {
     ThemeToggleComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:click)': 'userMenuOpen.set(false)' },
+  host: {
+    '(document:click)': 'userMenuOpen.set(false)',
+    '(document:keydown.escape)': 'closeOverlays()',
+  },
   template: `
     <div class="fixed top-0 left-0 right-0 z-50 h-16 glass" style="border:0;border-bottom:1px solid var(--glass-border-subtle);">
-      <div class="flex items-center justify-between h-16 px-6">
+      <div class="flex items-center justify-between gap-2 h-16 px-3 sm:px-6">
+        <div class="flex items-center gap-1 min-w-0">
+        <!-- Sous 1024 px la barre latérale devient un tiroir : ce bouton l'ouvre. -->
+        <button type="button" class="button-icon lg:hidden shrink-0"
+                aria-controls="ideploy-sidebar"
+                [attr.aria-expanded]="navOpen()"
+                [attr.aria-label]="(navOpen() ? 'shell.closeMenu' : 'shell.openMenu') | translate"
+                (click)="toggleNav($event)">
+          <i class="pi text-lg" [class.pi-bars]="!navOpen()" [class.pi-times]="navOpen()" aria-hidden="true"></i>
+        </button>
         <a routerLink="/dashboard" class="flex items-center shrink-0">
           <img src="/assets/logos/Ideploy%20logo%20light.png" alt="iDeploy" class="h-7 w-auto dark:hidden" />
           <img src="/assets/logos/Ideploy%20logo%20dark.png" alt="" aria-hidden="true" class="h-7 w-auto hidden dark:block" />
         </a>
+        </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
           @if (isInstanceAdmin()) {
             <!-- The badge doubles as the way in: it was previously inert. -->
             <a routerLink="/admin"
-               class="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:opacity-80"
+               [attr.aria-label]="'shell.admin' | translate"
+               class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md hover:opacity-80 shrink-0"
                style="background:color-mix(in srgb, var(--color-danger) 12%, transparent);color:var(--color-danger);border:1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);">
               <i class="pi pi-shield text-xs"></i>
-              <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
+              <span class="hidden sm:inline" style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
             </a>
           }
           <a routerLink="/subscription"
              data-tour="ideploy-plan"
-             class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80"
+             class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80 min-w-0"
              style="background:color-mix(in srgb, var(--color-primary-500) 12%, transparent);color:var(--color-primary-400);border:1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent);">
             <i class="pi pi-wallet text-[10px]"></i>
-            <span style="font-size:10px;font-weight:700;">
+            <span class="truncate" style="font-size:10px;font-weight:700;">
               @if (meters.walletXaf() !== null) {
                 {{ 'meters.chip' | translate: { amount: (meters.walletXaf() | number: '1.0-0') } }}
               } @else {
@@ -98,7 +112,7 @@ function appNav(uuid: string): NavSection[] {
               }
             </span>
           </a>
-          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
+          <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
             <i class="pi pi-box text-[10px]" style="color:var(--color-primary-400);"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
@@ -110,7 +124,7 @@ function appNav(uuid: string): NavSection[] {
               </div>
             </div>
           </div>
-          <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
+          <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
             <i class="pi pi-server text-[10px]" style="color:var(--color-success);"></i>
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between gap-2">
@@ -125,7 +139,7 @@ function appNav(uuid: string): NavSection[] {
           <!-- Everything that belongs to the person — profile, display settings,
                sign-out — lives behind their avatar, so the bar carries status and
                nothing else. -->
-          <div class="relative">
+          <div class="relative shrink-0">
             <button type="button" class="flex items-center rounded-full"
                     data-tour="ideploy-user-menu"
                     [attr.aria-expanded]="userMenuOpen()"
@@ -141,7 +155,7 @@ function appNav(uuid: string): NavSection[] {
             </button>
 
             @if (userMenuOpen()) {
-              <div class="absolute right-0 mt-3 w-64 overflow-hidden modal-panel" (click)="$event.stopPropagation()">
+              <div class="absolute right-0 mt-3 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden modal-panel" (click)="$event.stopPropagation()">
                 <div class="px-4 py-3" style="border-bottom:1px solid var(--glass-border-subtle);">
                   <p class="text-sm font-bold truncate">{{ me()?.name || authUser()?.email }}</p>
                   <p class="font-mono text-xs truncate" style="color:var(--color-text-tertiary);">{{ authUser()?.email }}</p>
@@ -180,7 +194,19 @@ function appNav(uuid: string): NavSection[] {
       </div>
     </div>
 
-    <aside class="fixed top-16 bottom-0 left-0 z-40 w-64 flex flex-col glass"
+    @if (navOpen()) {
+      <!-- Voile du tiroir (mobile seulement) : un toucher à côté le referme. -->
+      <div class="fixed inset-0 top-16 z-30 lg:hidden" style="background:rgb(0 0 0 / .45);"
+           aria-hidden="true" (click)="navOpen.set(false)"></div>
+    }
+
+    <aside id="ideploy-sidebar"
+           class="fixed top-16 bottom-0 left-0 z-40 w-72 max-w-[85vw] lg:w-64 flex flex-col transition-transform duration-200 ease-out lg:translate-x-0"
+           [class.-translate-x-full]="!navOpen()"
+           [class.glass]="isDesktop()"
+           [class.modal-drawer]="!isDesktop()"
+           [attr.inert]="!isDesktop() && !navOpen() ? '' : null"
+           [attr.aria-label]="'shell.navigation' | translate"
            style="border:0;border-right:1px solid var(--glass-border);">
       <nav class="flex flex-col flex-1 custom-scrollbar overflow-y-auto">
         <div style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
@@ -259,8 +285,8 @@ function appNav(uuid: string): NavSection[] {
       </nav>
     </aside>
 
-    <main class="pl-64 pt-16">
-      <div class="p-4 sm:px-6 lg:px-8 lg:py-6">
+    <main class="pt-16 lg:pl-64 min-w-0">
+      <div class="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 min-w-0 max-w-full">
         <router-outlet />
       </div>
     </main>
@@ -277,8 +303,25 @@ export class ShellComponent implements OnInit {
   /** The account lives in the central app; iDeploy links out to it. */
   protected readonly profileUrl = `${environment.services.console.url}/account/profile`;
 
+  /** Tiroir de navigation, utilisé sous 1024 px (`lg`) ; au-delà la barre latérale est toujours là. */
+  protected readonly navOpen = signal(false);
+  private readonly desktopQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null;
+  protected readonly isDesktop = signal(this.desktopQuery?.matches ?? true);
+
+  protected toggleNav(event: Event): void {
+    event.stopPropagation();
+    this.userMenuOpen.set(false);
+    this.navOpen.update((open) => !open);
+  }
+
+  protected closeOverlays(): void {
+    this.userMenuOpen.set(false);
+    this.navOpen.set(false);
+  }
+
   protected toggleUserMenu(event: Event): void {
     event.stopPropagation();
+    this.navOpen.set(false);
     this.userMenuOpen.update((open) => !open);
   }
 
@@ -401,6 +444,11 @@ export class ShellComponent implements OnInit {
     this.syncAppContext(this.router.url);
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
       this.syncAppContext((e as NavigationEnd).urlAfterRedirects);
+      this.navOpen.set(false);
+    });
+    this.desktopQuery?.addEventListener('change', (q) => {
+      this.isDesktop.set(q.matches);
+      if (q.matches) this.navOpen.set(false);
     });
   }
 

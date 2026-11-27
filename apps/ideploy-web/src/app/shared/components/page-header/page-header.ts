@@ -12,9 +12,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   selector: 'app-page-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <header class="mb-6 sm:mb-8 flex flex-wrap items-end justify-between gap-4">
       <div class="min-w-0 max-w-2xl">
-        <h1 class="heading-serif" style="font-size:30px;font-weight:700;line-height:1.15;color:var(--color-text-primary);">
+        <h1 class="heading-serif text-2xl sm:text-[30px] break-words" style="font-weight:700;line-height:1.15;color:var(--color-text-primary);">
           {{ title() }}
           @if (count() !== null) {
             <span class="ml-1 align-middle text-base font-normal" style="color:var(--color-text-tertiary);">{{ count() }}</span>
@@ -24,7 +24,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
           <p class="mt-2 text-sm leading-relaxed" style="color:var(--color-text-secondary);">{{ subtitle() }}</p>
         }
       </div>
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- Sur mobile, les actions prennent la largeur et se partagent la ligne : plus d'escalier de boutons. -->
+      <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto [&>*]:flex-auto [&>*]:justify-center [&>*]:whitespace-nowrap sm:[&>*]:flex-none">
         <ng-content />
       </div>
     </header>

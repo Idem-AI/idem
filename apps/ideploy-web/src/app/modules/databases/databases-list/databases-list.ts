@@ -28,25 +28,25 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
         } @else {
           <div class="space-y-3">
             @for (db of databases(); track db.uuid) {
-              <div class="glass-card p-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
+              <div class="glass-card p-4 flex flex-col gap-3">
+                <div class="flex items-center gap-3 min-w-0">
                   <div
                     class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg [&_svg]:h-6 [&_svg]:w-6"
                     style="background:var(--color-surface-2);"
                     [innerHTML]="iconHtml(db.type)"
                   ></div>
-                  <div>
-                    <a class="font-semibold hover:underline" [routerLink]="['/databases', db.type, db.uuid]">{{ db.name }}</a>
-                    <div class="text-sm" style="color: var(--color-text-secondary)">
+                  <div class="min-w-0">
+                    <a class="block truncate font-semibold hover:underline" [routerLink]="['/databases', db.type, db.uuid]">{{ db.name }}</a>
+                    <div class="text-sm break-words" style="color: var(--color-text-secondary)">
                       {{ db.type }} · {{ db.image }} · {{ db.status }}
                     </div>
                   </div>
                 </div>
-                <div class="flex gap-2">
-                  <button class="outer-button" (click)="action(db, 'start')">{{ 'databases.start' | translate }}</button>
-                  <button class="outer-button" (click)="action(db, 'stop')">{{ 'databases.stop' | translate }}</button>
-                  <button class="outer-button" (click)="backup(db)">{{ 'databases.backupNow' | translate }}</button>
-                  <button class="text-xs text-red-400" (click)="remove(db)">{{ 'databases.delete' | translate }}</button>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" class="outer-button button-sm" (click)="action(db, 'start')">{{ 'databases.start' | translate }}</button>
+                  <button type="button" class="outer-button button-sm" (click)="action(db, 'stop')">{{ 'databases.stop' | translate }}</button>
+                  <button type="button" class="outer-button button-sm" (click)="backup(db)">{{ 'databases.backupNow' | translate }}</button>
+                  <button type="button" class="ml-auto text-xs" style="color:var(--color-danger);" (click)="remove(db)">{{ 'databases.delete' | translate }}</button>
                 </div>
               </div>
             }

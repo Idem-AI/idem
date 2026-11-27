@@ -17,10 +17,10 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
 
     <section class="glass-card p-4 mb-6">
       <h2 class="mb-3 font-semibold">{{ 'team.profile' | translate }}</h2>
-      <form class="flex flex-wrap gap-2" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.namePlaceholder' | translate" formControlName="name" />
-        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.descriptionPlaceholder' | translate" formControlName="description" />
-        <button class="inner-button" type="submit" [disabled]="profileForm.invalid || savingProfile()">
+      <form class="flex flex-col gap-2 sm:flex-row sm:flex-wrap" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <input type="text" class="sm:flex-1 sm:!w-auto min-w-0" [placeholder]="'team.namePlaceholder' | translate" formControlName="name" />
+        <input type="text" class="sm:flex-1 sm:!w-auto min-w-0" [placeholder]="'team.descriptionPlaceholder' | translate" formControlName="description" />
+        <button class="inner-button justify-center" type="submit" [disabled]="profileForm.invalid || savingProfile()">
           {{ (savingProfile() ? 'team.saving' : 'team.save') | translate }}
         </button>
       </form>
@@ -29,15 +29,17 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
     <section class="glass-card p-4 mb-6">
       <h2 class="mb-3 font-semibold">{{ 'team.members' | translate }}</h2>
       @for (m of members(); track m.user_id) {
-        <div class="mb-1 flex items-center gap-3 text-sm">
-          <span class="font-semibold">{{ m.name }}</span>
-          <span style="color: var(--color-text-secondary)">{{ m.email }}</span>
-          <select class="ml-auto !w-32 py-1 text-xs" [value]="m.role" (change)="changeRole(m, $event)">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 text-sm" style="border-bottom:1px solid var(--color-surface-2);">
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="truncate font-semibold">{{ m.name }}</p>
+            <p class="truncate text-xs" style="color: var(--color-text-secondary)">{{ m.email }}</p>
+          </div>
+          <select class="!w-32 py-1 text-xs" [value]="m.role" [attr.aria-label]="m.name" (change)="changeRole(m, $event)">
             <option value="member">{{ 'team.roleMember' | translate }}</option>
             <option value="admin">{{ 'team.roleAdmin' | translate }}</option>
             <option value="owner">{{ 'team.roleOwner' | translate }}</option>
           </select>
-          <button class="text-xs text-red-400" (click)="removeMember(m)">{{ 'team.remove' | translate }}</button>
+          <button type="button" class="text-xs" style="color:var(--color-danger);" (click)="removeMember(m)">{{ 'team.remove' | translate }}</button>
         </div>
       }
     </section>
@@ -45,15 +47,17 @@ import { TeamInfo } from '../../../shared/models/ideploy.models';
     <section class="glass-card p-4">
       <h2 class="mb-3 font-semibold">{{ 'team.invitations' | translate }}</h2>
       @for (inv of invitations(); track inv.uuid) {
-        <div class="mb-1 flex items-center gap-3 text-sm">
-          <span>{{ inv.email }} ({{ inv.role }})</span>
-          <code class="text-xs">{{ inv.link }}</code>
-          <button class="ml-auto text-xs text-red-400" (click)="revoke(inv.uuid)">{{ 'team.revoke' | translate }}</button>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm" style="border-bottom:1px solid var(--color-surface-2);">
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="truncate">{{ inv.email }} ({{ inv.role }})</p>
+            <code class="block truncate text-xs" style="color: var(--color-text-secondary)">{{ inv.link }}</code>
+          </div>
+          <button type="button" class="text-xs" style="color:var(--color-danger);" (click)="revoke(inv.uuid)">{{ 'team.revoke' | translate }}</button>
         </div>
       }
-      <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="invite()">
-        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'team.emailPlaceholder' | translate" formControlName="email" />
-        <select class="!w-32" formControlName="role">
+      <form class="mt-3 flex flex-wrap gap-2" [formGroup]="form" (ngSubmit)="invite()">
+        <input type="email" class="flex-1 basis-full sm:basis-48 !w-auto min-w-0" [placeholder]="'team.emailPlaceholder' | translate" formControlName="email" />
+        <select class="flex-1 sm:flex-none sm:!w-32" formControlName="role">
           <option value="member">{{ 'team.roleMember' | translate }}</option>
           <option value="admin">{{ 'team.roleAdmin' | translate }}</option>
         </select>

@@ -26,7 +26,7 @@ import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/
       <span class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl" style="background:var(--glass-bg-subtle);">
         <i class="pi pi-github text-xl text-text-primary"></i>
       </span>
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 flex-1 basis-48">
         <div class="font-semibold text-text-primary">GitHub</div>
         @if (githubUser(); as user) {
           <p class="text-sm" style="color:var(--color-text-secondary);">

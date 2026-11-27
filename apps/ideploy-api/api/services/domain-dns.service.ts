@@ -11,6 +11,7 @@
  * Public resolvers (Cloudflare, Google) are asked, not the server's own: the
  * user is told what the world sees, which is what Let's Encrypt sees.
  */
+import { PLATFORM_DOMAIN, isOnLegacyPlatformDomain } from '../config/platform-domain.config';
 import { Resolver } from 'dns/promises';
 import tls from 'tls';
 import pool from '../config/db.config';
@@ -85,9 +86,11 @@ export function inCidr(ip: string, cidr: string): boolean {
 export const isCloudflare = (ip: string) => CLOUDFLARE_V4.some((cidr) => inCidr(ip, cidr));
 
 /** Hostnames that need no DNS from the user. */
-export function isAutomatic(host: string, platformDomain = process.env.IDEPLOY_PLATFORM_DOMAIN || ''): boolean {
+export function isAutomatic(host: string, platformDomain: string = PLATFORM_DOMAIN): boolean {
   const h = host.toLowerCase();
   if (/\.(sslip|nip)\.io$/.test(h)) return true;
+  // An address from before the move to ideploy.site is still iDeploy's own until the migration replaces it.
+  if (platformDomain === PLATFORM_DOMAIN && isOnLegacyPlatformDomain(h)) return true;
   return Boolean(platformDomain) && h.endsWith(`.${platformDomain.toLowerCase()}`);
 }
 
@@ -119,7 +122,7 @@ export async function lookup(host: string, resolver = publicResolver()): Promise
 }
 
 /** An address of the platform domain (`monapp.ideploy.site`), which iDeploy writes in DNS itself. */
-export function isPlatformHost(host: string, platformDomain = process.env.IDEPLOY_PLATFORM_DOMAIN || ''): boolean {
+export function isPlatformHost(host: string, platformDomain: string = PLATFORM_DOMAIN): boolean {
   return Boolean(platformDomain) && host.toLowerCase().endsWith(`.${platformDomain.toLowerCase()}`);
 }
 

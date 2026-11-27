@@ -862,6 +862,22 @@
       "stepRecords": "Ajoutez ces réglages",
       "pickHint": "Choisissez votre fournisseur : nous vous disons où cliquer.",
       "copied": "Copié"
+    },
+    "customize": {
+      "open": "Personnaliser l'adresse",
+      "title": "Choisissez le nom de votre adresse",
+      "hint": "3 à 40 lettres, chiffres ou tirets.",
+      "checking": "Vérification…",
+      "free": "{{host}} est libre.",
+      "cta": "Utiliser cette adresse",
+      "saving": "Enregistrement…",
+      "error": "L'adresse n'a pas pu être changée. Réessayez dans un instant.",
+      "refused": {
+        "invalid": "Utilisez 3 à 40 lettres, chiffres ou tirets, sans tiret au début ni à la fin.",
+        "reserved": "Ce nom est réservé à IDEM. Choisissez-en un autre.",
+        "taken": "Cette adresse est déjà prise. Choisissez-en une autre.",
+        "unavailable": "Impossible de vérifier pour l'instant. Réessayez dans un instant."
+      }
     }
   },
   "editMode": {

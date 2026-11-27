@@ -9,21 +9,21 @@ import { ApiService } from '../../../shared/services/api.service';
   imports: [ReactiveFormsModule, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">{{ 'sharedVariables.title' | translate }}</h1>
+    <h1 class="heading-serif text-2xl sm:text-[32px] break-words mb-6" style="font-weight:700;color:var(--color-text-primary);">{{ 'sharedVariables.title' | translate }}</h1>
     <p class="mb-4 text-sm" style="color: var(--color-text-secondary)">{{ 'sharedVariables.description' | translate }}</p>
 
     <div class="glass-card p-4 max-w-2xl">
       @for (v of vars(); track v.key) {
         <div class="mb-2 flex items-center gap-2 text-sm">
-          <code>{{ v.key }}</code>
-          <span style="color: var(--color-text-secondary)">= {{ v.value }}</span>
-          <button class="ml-auto text-xs text-red-400" (click)="remove(v)">{{ 'sharedVariables.delete' | translate }}</button>
+          <code class="shrink-0">{{ v.key }}</code>
+          <span class="min-w-0 truncate" style="color: var(--color-text-secondary)">= {{ v.value }}</span>
+          <button type="button" class="ml-auto shrink-0 text-xs" style="color:var(--color-danger);" (click)="remove(v)">{{ 'sharedVariables.delete' | translate }}</button>
         </div>
       }
-      <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
-        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
-        <button class="inner-button" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
+      <form class="mt-3 flex flex-col gap-2 sm:flex-row" [formGroup]="form" (ngSubmit)="add()">
+        <input type="text" class="sm:flex-1 sm:!w-auto min-w-0" [placeholder]="'sharedVariables.keyPlaceholder' | translate" formControlName="key" />
+        <input type="text" class="sm:flex-1 sm:!w-auto min-w-0" [placeholder]="'sharedVariables.valuePlaceholder' | translate" formControlName="value" />
+        <button class="inner-button justify-center" type="submit" [disabled]="form.invalid || teamId() === null">{{ 'sharedVariables.add' | translate }}</button>
       </form>
     </div>
   `,

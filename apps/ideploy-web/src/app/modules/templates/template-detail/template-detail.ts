@@ -51,7 +51,7 @@ import {
           </div>
           <h1 class="text-2xl font-bold capitalize">{{ template()!.name }}</h1>
         </div>
-        <div class="flex gap-2">
+        <div class="flex w-full flex-wrap gap-2 sm:w-auto [&>*]:flex-auto [&>*]:justify-center [&>*]:whitespace-nowrap sm:[&>*]:flex-none">
           @if (template()!.documentation) {
             <a class="outer-button" [href]="template()!.documentation" target="_blank" rel="noopener">
               <i class="pi pi-book mr-2"></i>{{ 'templates.documentation' | translate }}

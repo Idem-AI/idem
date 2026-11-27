@@ -54,7 +54,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         <i class="pi pi-chevron-left text-[10px]"></i>
         {{ 'security.app.backToApplication' | translate }}
       </a>
-      <h1 class="heading-serif mb-1" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+      <h1 class="heading-serif text-2xl sm:text-[32px] break-words mb-1" style="font-weight:700;color:var(--color-text-primary);">
         {{ 'security.app.title' | translate }}
       </h1>
     }
@@ -156,7 +156,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       </section>
     }
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <!-- WAF + address rules -->
       <section class="glass-card p-4">
         <div class="mb-1 flex items-center gap-2">
@@ -430,7 +430,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
       {{ 'security.app.activity' | translate }}
     </h2>
     <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.activityDesc' | translate }}</p>
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section class="glass-card overflow-hidden">
         <div class="box-header">
           <h3 class="box-title">{{ 'security.app.alerts' | translate }}</h3>

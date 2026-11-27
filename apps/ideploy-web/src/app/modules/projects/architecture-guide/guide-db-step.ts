@@ -102,7 +102,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
             <i class="pi text-xs" style="color:var(--color-text-tertiary);" [class.pi-chevron-down]="!showAdvanced()" [class.pi-chevron-up]="showAdvanced()"></i>
           </button>
           @if (showAdvanced()) {
-            <div id="guide-db-credentials" class="grid gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
+            <div id="guide-db-credentials" class="grid grid-cols-1 gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
               @for (col of primaryColumns(); track col) {
                 <div [class.sm:col-span-2]="isSecretField(col)">
                   <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" [for]="'guide-db-' + col">{{ credentialLabel(col) }}</label>
@@ -141,7 +141,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
             <input type="checkbox" class="flex-shrink-0" [checked]="includeRedis()" (change)="includeRedis.set(!includeRedis())" />
           </label>
           @if (includeRedis()) {
-            <div class="grid gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
+            <div class="grid grid-cols-1 gap-3 px-4 pb-4 pt-1 sm:grid-cols-2" style="background:var(--glass-bg-light);">
               <div>
                 <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="guide-redis-name">{{ 'databases.name' | translate }}</label>
                 <input type="text" id="guide-redis-name" class="text-xs" [ngModel]="redisName()" (ngModelChange)="redisName.set($event)" />

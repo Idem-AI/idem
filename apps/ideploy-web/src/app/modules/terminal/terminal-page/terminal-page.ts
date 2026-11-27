@@ -43,7 +43,7 @@ type TargetKind = 'server' | 'application' | 'database';
 
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+        <h1 class="heading-serif text-2xl sm:text-[32px] break-words" style="font-weight:700;color:var(--color-text-primary);">
           {{ 'terminal.title' | translate }}
         </h1>
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">

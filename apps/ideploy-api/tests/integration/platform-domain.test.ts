@@ -148,21 +148,44 @@ describe('releasePlatformHost', () => {
 describe('publishing from iCode', () => {
   const site = { 'dist/index.html': '<h1>Boutique</h1>' };
 
-  it('puts the site at monapp.ideploy.site, then monapp-<id> for the next one with that name', async () => {
+  it('puts the site at monapp.ideploy.site, and keeps it there at every publish of that name', async () => {
     const team = await makeTeam();
     await makeManagedServer();
 
     const first = await quickDeploy(team.id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: true });
+    // The client lost the link to the first publish (another browser, a new chat): same application anyway.
     const second = await quickDeploy(team.id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: true });
 
     expect(first.url).toBe('https://monapp.ideploy.site');
-    expect(second.url).toMatch(/^https:\/\/monapp-[a-z0-9]{5}\.ideploy\.site$/);
+    expect(second.url).toBe('https://monapp.ideploy.site');
+    expect(second.applicationUuid).toBe(first.applicationUuid);
+    expect(second.reused).toBe(true);
+    expect(dns.writes).toBe(1);
   });
 
-  it('keeps the automatic address for callers that did not ask', async () => {
+  it('gives monapp-<id> to another team that wants the same name', async () => {
+    await makeManagedServer();
+    const first = await quickDeploy((await makeTeam()).id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: true });
+    const other = await quickDeploy((await makeTeam()).id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: true });
+
+    expect(first.url).toBe('https://monapp.ideploy.site');
+    expect(other.url).toMatch(/^https:\/\/monapp-[a-z0-9]{5}\.ideploy\.site$/);
+  });
+
+  it('a reservation for a name already published is not a reservation', async () => {
     const team = await makeTeam();
     await makeManagedServer();
-    const result = await quickDeploy(team.id, { name: 'monapp', files: site, build_pack: 'static' });
+    const published = await quickDeploy(team.id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: true });
+    const reserved = await quickDeploy(team.id, { name: 'monapp', build_pack: 'static', platform_domain: true, reserve: true });
+
+    expect(reserved.applicationUuid).toBe(published.applicationUuid);
+    expect(reserved.reused).toBe(true);
+  });
+
+  it('keeps the automatic address for callers that turn it off', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const result = await quickDeploy(team.id, { name: 'monapp', files: site, build_pack: 'static', platform_domain: false });
     expect(result.url).toContain('sslip.io');
     expect(dns.writes).toBe(0);
   });
@@ -187,5 +210,75 @@ describe('publishing from iCode', () => {
     const backend = await appService.getApplication(team.id, result.backend.uuid);
     const backendEnv = await envVarService.listForApplication(team.id, backend!.uuid);
     expect(backendEnv.find((v) => v.key === 'CORS_ORIGIN')?.value).toBe('https://clinique.ideploy.site');
+  });
+});
+
+describe('choosing the name of the free address', () => {
+  const site = { 'dist/index.html': '<h1>Buni</h1>' };
+
+  it('renames buni-k3x9p.ideploy.site to buni.ideploy.site, first address kept first, old record given back', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    dns.zone.hosts.push({ name: 'buni', type: 'A', address: '203.0.113.9', mxPref: '10', ttl: '300' });
+    const published = await quickDeploy(team.id, { name: 'buni', files: site, build_pack: 'static', platform_domain: true });
+    const suffixed = published.url!.replace('https://', '');
+    expect(suffixed).toMatch(/^buni-[a-z0-9]{5}\.ideploy\.site$/);
+
+    // Taken by a record of the zone: refused, never replaced by another name.
+    expect(await appService.renamePlatformAddress(team.id, published.applicationUuid!, 'buni')).toEqual({ ok: false, reason: 'taken' });
+
+    dns.zone.hosts = dns.zone.hosts.filter((h) => h.name !== 'buni');
+    const renamed = await appService.renamePlatformAddress(team.id, published.applicationUuid!, 'Buni');
+    expect(renamed.ok).toBe(true);
+    if (!renamed.ok) return;
+    expect(renamed.app.fqdn?.split(',')[0]).toBe('https://buni.ideploy.site');
+    expect(renamed.previous).toBe(suffixed);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(dns.record(suffixed.split('.')[0])).toBeUndefined();
+    expect(dns.record('buni')).toBeDefined();
+  });
+
+  it("refuses invalid names and IDEM's own", async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const published = await quickDeploy(team.id, { name: 'vitrine', files: site, build_pack: 'static', platform_domain: true });
+    expect(await appService.renamePlatformAddress(team.id, published.applicationUuid!, '-x')).toEqual({ ok: false, reason: 'invalid' });
+    expect(await appService.renamePlatformAddress(team.id, published.applicationUuid!, 'console')).toEqual({ ok: false, reason: 'reserved' });
+  });
+});
+
+describe('migration idem.africa → ideploy.site', () => {
+  it('moves buni.idem.africa to buni.ideploy.site, removes the old record, and reports it', async () => {
+    const legacy = new MemoryZone();
+    Object.assign(legacy, { domain: 'idem.africa' });
+    legacy.zone.hosts.push({ name: 'buni', type: 'A', address: '198.51.100.7', mxPref: '10', ttl: '300' });
+    setDnsProvider(dns, legacy);
+
+    const team = await makeTeam();
+    const server = await makeManagedServer();
+    const project = await makeProject(team.id);
+    const app = await makeApplication(project.environmentId, server.destinationId);
+    await testPool().query("UPDATE applications SET fqdn = $2, status = 'exited' WHERE id = $1", [app.id, 'https://buni.idem.africa,https://buni.198.51.100.7.sslip.io']);
+    const other = await makeApplication(project.environmentId, server.destinationId);
+    // Typed by a user, or IDEM's own: never moved.
+    await testPool().query('UPDATE applications SET fqdn = $2 WHERE id = $1', [other.id, 'https://www.buni.idem.africa,https://console.idem.africa']);
+
+    const { migrateAll, reportEmail } = await import('../../api/services/domain-migration.service');
+    const report = await migrateAll();
+
+    expect(report.state).toBe('succeeded');
+    expect(report.entries).toHaveLength(1);
+    const moved = await appService.getApplicationById(app.id);
+    expect(moved?.fqdn).toBe('https://buni.ideploy.site,https://buni.198.51.100.7.sslip.io');
+    expect(dns.record('buni')).toBeDefined();
+    expect(legacy.record('buni')).toBeUndefined();
+    const mail = reportEmail(report);
+    expect(mail.to).toBe('beta@idem.africa');
+    expect(mail.text).toContain('https://buni.ideploy.site');
+
+    // Second start: nothing left, and the report says so.
+    const again = await migrateAll();
+    expect(again.state).toBe('nothing_to_do');
+    expect(reportEmail(again).subject).toContain('déjà effectuée');
   });
 });

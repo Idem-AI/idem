@@ -78,6 +78,9 @@ router.get('/:uuid/status', ctrl.containerStatus);
 router.get('/:uuid/domains/dns', ctrl.domainDns);
 router.get('/:uuid/domains/options', ctrl.domainOptions);
 router.put('/:uuid/domains/options', ctrl.updateDomainOptionsCtrl);
+// Le nom de l'adresse gratuite (`monapp.ideploy.site`), choisi par le propriétaire.
+router.get('/:uuid/platform-address', ctrl.platformAddressCheck);
+router.put('/:uuid/platform-address', ctrl.renamePlatformAddressCtrl);
 router.get('/:uuid/metrics', ctrl.metrics);
 
 /**

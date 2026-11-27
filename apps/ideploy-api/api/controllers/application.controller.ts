@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
+import { PLATFORM_DOMAIN } from '../config/platform-domain.config';
 import * as appService from '../services/application.service';
 import { checkDomains, getServerForDestination } from '../services/domain.service';
 import * as envVarService from '../services/env-var.service';
@@ -307,6 +308,58 @@ export async function metrics(req: CustomRequest, res: Response): Promise<void> 
     fail(res, (err as Error).message || 'Failed to get metrics');
   }
 }
+const LABEL_REFUSALS: Record<string, { status: number; message: string }> = {
+  invalid: { status: 422, message: 'Use 3 to 40 letters, digits or dashes, without a dash at either end.' },
+  reserved: { status: 409, message: 'This name is kept for IDEM. Choose another one.' },
+  taken: { status: 409, message: 'This address is already taken. Choose another one.' },
+  unavailable: { status: 503, message: 'Addresses cannot be changed right now. Try again in a moment.' },
+};
+
+/** `?label=` : is `label.ideploy.site` free for this application? */
+export async function platformAddressCheck(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const teamId = req.user!.currentTeamId!;
+    const app = await appService.getApplication(teamId, String(req.params.uuid));
+    if (!app) return fail(res, 'Application not found', 404, 'NOT_FOUND');
+    const { checkPlatformLabel } = await import('../services/platform-domain.service');
+    const current = (app.fqdn ?? '')
+      .split(',')
+      .map((p) => p.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase())
+      .find((h) => h.endsWith(`.${PLATFORM_DOMAIN}`));
+    ok(res, { domain: PLATFORM_DOMAIN, current: current ?? null, ...(await checkPlatformLabel(String(req.query.label ?? ''), app.id, current)) });
+  } catch (err) {
+    respondWithError(res, err, 'Checking the address');
+  }
+}
+
+/**
+ * `{ label }` : the free address becomes `label.ideploy.site`. Applied to the
+ * proxy now when the application's routes allow it, otherwise by a deployment
+ * started here — the owner never has to know which.
+ */
+export async function renamePlatformAddressCtrl(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const teamId = req.user!.currentTeamId!;
+    const uuid = String(req.params.uuid);
+    const result = await appService.renamePlatformAddress(teamId, uuid, String(req.body?.label ?? ''));
+    if (!result.ok) {
+      const refusal = LABEL_REFUSALS[result.reason];
+      return fail(res, refusal.message, refusal.status, `ADDRESS_${result.reason.toUpperCase()}`);
+    }
+    const live = await applyDomainsLive(teamId, uuid).catch((err) => {
+      logger.warn('Renamed address not applied live', { uuid, error: err });
+      return { applied: false as const };
+    });
+    let deploymentUuid: string | null = null;
+    if (!live.applied && result.app.status !== 'exited') {
+      deploymentUuid = (await deploymentService.createDeployment(result.app, teamId, {})).deploymentUuid;
+    }
+    ok(res, { ...result.app, previousHost: result.previous, domainsApplied: live.applied, deploymentUuid });
+  } catch (err) {
+    respondWithError(res, err, 'Changing the address');
+  }
+}
+
 /**
  * What to put in DNS for the application's domains, and whether it is there:
  * the record (with the server's IP), the state of public DNS, HTTPS.

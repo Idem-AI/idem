@@ -234,7 +234,7 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                 <details class="rounded-lg p-3" style="border:1px solid var(--color-surface-2);">
                   <summary class="cursor-pointer text-sm font-medium">{{ 'projects.start.privateRegistry' | translate }}</summary>
                   <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.privateRegistryHint' | translate }}</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <input type="text" class="font-mono" formControlName="registryUsername" [placeholder]="'projects.start.registryUser' | translate" autocomplete="off" />
                     <input type="password" class="font-mono" formControlName="registryToken" [placeholder]="'projects.start.registryToken' | translate" autocomplete="new-password" />
                   </div>

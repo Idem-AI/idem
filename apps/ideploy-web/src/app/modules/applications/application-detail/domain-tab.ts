@@ -7,6 +7,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Application, DomainDnsCheck, DomainDnsGuide } from '../../../shared/models/ideploy.models';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 import { DomainOptionsComponent } from './domain-options';
+import { PlatformAddressComponent } from './platform-address';
 import { DomainWizardComponent } from './domain-wizard';
 import { bareHost } from './domain-providers';
 
@@ -18,7 +19,7 @@ const MAX_POLLS = 20;
 interface DomainRow {
   host: string;
   check: DomainDnsCheck | null;
-  /** The IDEM address (`monprojet.idem.africa`) or another automatic one. */
+  /** The free address (`monprojet.ideploy.site`) or another automatic one. */
   automatic: boolean;
   primary: boolean;
   live: boolean;
@@ -35,7 +36,7 @@ interface DomainRow {
  */
 @Component({
   selector: 'app-domain-tab',
-  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, DomainWizardComponent, IdemLoaderComponent, DomainPurchaseComponent, DomainManageComponent],
+  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, PlatformAddressComponent, DomainWizardComponent, IdemLoaderComponent, DomainPurchaseComponent, DomainManageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -55,7 +56,7 @@ interface DomainRow {
         />
       } @else if (customCount() === 0) {
         <!-- No domain of one's own yet: the invitation, in plain words. -->
-        <section class="glass-card grid items-center gap-6 p-6 md:grid-cols-[180px_1fr]">
+        <section class="glass-card grid grid-cols-1 items-center gap-6 p-6 md:grid-cols-[180px_1fr]">
           <app-illustration name="facade" [width]="170" class="mx-auto block" />
           <div>
             <h2 class="text-lg font-semibold text-text-primary">{{ 'applications.domain.inviteTitle' | translate }}</h2>
@@ -101,17 +102,22 @@ interface DomainRow {
           @for (row of rows(); track row.host; let last = $last) {
             <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-4" [style.border-bottom]="last ? 'none' : '1px solid var(--glass-border-subtle)'">
               <span class="h-2 w-2 shrink-0 rounded-full" [style.background]="dotColor(row)" aria-hidden="true"></span>
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 basis-48">
                 <a class="break-all font-mono text-sm font-semibold hover:underline" [href]="'https://' + row.host" target="_blank" rel="noopener noreferrer">{{ row.host }}</a>
                 <p class="mt-0.5 text-xs" style="color:var(--color-text-secondary);">
                   {{ statusText(row) | translate }}
-                  @if (row.automatic) { · {{ (row.host.endsWith('.idem.africa') ? 'applications.domain.idemAddress' : 'applications.domain.backupAddress') | translate }} }
+                  @if (row.automatic) { · {{ (isPlatform(row.host) ? 'applications.domain.idemAddress' : 'applications.domain.backupAddress') | translate }} }
                   @if (row.primary && rows().length > 1) { · {{ 'applications.domain.primary' | translate }} }
                 </p>
               </div>
               <div class="flex items-center gap-1">
                 @if (!row.automatic && !row.live && row.check) {
                   <button type="button" class="outer-button button-sm" (click)="resume(row.host)">{{ 'applications.domain.resume' | translate }}</button>
+                }
+                @if (isPlatform(row.host) && renaming() !== row.host) {
+                  <button type="button" class="button-ghost button-sm" (click)="renaming.set(row.host)">
+                    <i class="pi pi-pencil mr-1.5 text-xs" aria-hidden="true"></i>{{ 'applications.domain.customize.open' | translate }}
+                  </button>
                 }
                 <button type="button" class="button-ghost button-sm" [attr.aria-label]="'applications.domain.copy' | translate: { host: row.host }" (click)="copy(row.host)">
                   <i class="pi text-xs" [class.pi-copy]="copied() !== row.host" [class.pi-check]="copied() === row.host" aria-hidden="true"></i>
@@ -127,11 +133,17 @@ interface DomainRow {
                   </button>
                 }
               </div>
+              @if (renaming() === row.host) {
+                <app-platform-address class="block w-full" [app]="app()" [host]="row.host" (changed)="renamed($event)" (closed)="renaming.set(null)" />
+              }
             </li>
           } @empty {
             <li class="px-5 py-4 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.domain.none' | translate }}</li>
           }
         </ul>
+        @if (renamedNote()) {
+          <p class="px-5 pb-4 text-sm" role="status" style="color:var(--color-success);">{{ 'applications.domain.customize.done' | translate }}</p>
+        }
         @if (error() && !wizardOpen()) {
           <p class="px-5 pb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
         }
@@ -165,6 +177,9 @@ export class DomainTabComponent implements OnInit {
   protected readonly wizardHosts = signal<string[]>([]);
   /** La fenêtre d'achat d'un nom (iDomain, sans quitter iDeploy). */
   protected readonly buying = signal(false);
+  /** The free address being renamed (« Personnaliser »), if any. */
+  protected readonly renaming = signal<string | null>(null);
+  protected readonly renamedNote = signal(false);
   protected readonly manage = viewChild<DomainManageComponent>('manage');
   protected readonly idomainApi = environment.services.idomain.api;
   protected readonly topupUrl = `${environment.services.console.url}/account/plans`;
@@ -227,6 +242,19 @@ export class DomainTabComponent implements OnInit {
     const s = row.check?.status;
     if (!s || s === 'missing' || s === 'ok' || s === 'automatic') return 'var(--color-text-tertiary)';
     return 'var(--color-warning)';
+  }
+
+  /** `monapp.ideploy.site` — or an address from before the move, still renamable. */
+  protected isPlatform(host: string): boolean {
+    return /^[a-z0-9-]+\.(ideploy\.site|idem\.africa)$/.test(host);
+  }
+
+  protected renamed(app: Application): void {
+    this.renaming.set(null);
+    this.renamedNote.set(true);
+    this.domains.set(this.parse(app.fqdn));
+    this.updated.emit(app);
+    this.refresh();
   }
 
   protected copy(host: string): void {

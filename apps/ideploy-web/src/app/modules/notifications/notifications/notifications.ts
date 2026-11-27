@@ -29,9 +29,9 @@ interface ChannelState {
             [placeholder]="'notifications.webhookPlaceholder' | translate"
             [(ngModel)]="ch.webhook"
           />
-          <div class="flex gap-2">
-            <button class="inner-button" (click)="save(ch)">{{ 'notifications.save' | translate }}</button>
-            <button class="outer-button" (click)="test(ch)">{{ 'notifications.sendTest' | translate }}</button>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="inner-button whitespace-nowrap" (click)="save(ch)">{{ 'notifications.save' | translate }}</button>
+            <button type="button" class="outer-button whitespace-nowrap" (click)="test(ch)">{{ 'notifications.sendTest' | translate }}</button>
           </div>
           @if (status()[ch.channel]; as st) {
             <p class="mt-2 text-xs" [class.text-green-400]="st.ok" [class.text-red-400]="!st.ok">

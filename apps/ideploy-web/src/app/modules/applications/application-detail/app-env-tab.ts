@@ -64,7 +64,7 @@ import { EnvVar } from '../../../shared/models/ideploy.models';
         </div>
       }
 
-      <form class="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="add()">
+      <form class="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="add()">
         <div>
           <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="env-key">{{ 'applications.detail.keyLabel' | translate }}</label>
           <input type="text" id="env-key" class="font-mono text-sm" autocomplete="off" [placeholder]="'applications.detail.keyPlaceholder' | translate" formControlName="key" />

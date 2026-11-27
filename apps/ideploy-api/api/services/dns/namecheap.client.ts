@@ -1,5 +1,5 @@
 /**
- * DNS of the platform domain (idem.africa), hosted at Namecheap.
+ * DNS of the platform domain (ideploy.site, formerly idem.africa), hosted at Namecheap.
  *
  * ⚠️ Namecheap's API has no "add one record": `namecheap.domains.dns.setHosts`
  * REPLACES THE WHOLE ZONE with the list it is given. Every write is therefore
@@ -11,6 +11,7 @@
  * decides names is tested against an in-memory provider, never the real zone.
  */
 import logger from '../../config/logger';
+import { LEGACY_PLATFORM_DOMAIN, PLATFORM_DOMAIN } from '../../config/platform-domain.config';
 
 export interface DnsHost {
   name: string; // "@", "www", "monapp"
@@ -148,13 +149,16 @@ export class NamecheapDnsProvider implements DnsProvider {
 
 let active: DnsProvider | null | undefined;
 
-/** The provider configured by the environment, or null when the platform domain is off. */
-function fromEnvironment(): DnsProvider | null {
-  const domain = process.env.IDEPLOY_PLATFORM_DOMAIN?.trim();
+/**
+ * A Namecheap provider for `domain`, with the account of the environment, or
+ * null when the account is not configured. The domain itself never comes from
+ * the environment: see `config/platform-domain.config.ts`.
+ */
+function fromEnvironment(domain: string): DnsProvider | null {
   const apiUser = process.env.NAMECHEAP_API_USER?.trim();
   const apiKey = process.env.NAMECHEAP_API_KEY?.trim();
   const clientIp = process.env.NAMECHEAP_CLIENT_IP?.trim();
-  if (!domain || !apiUser || !apiKey || !clientIp) return null;
+  if (!apiUser || !apiKey || !clientIp) return null;
   return new NamecheapDnsProvider({
     domain,
     apiUser,
@@ -165,20 +169,31 @@ function fromEnvironment(): DnsProvider | null {
   });
 }
 
+/** The zone of `ideploy.site`, or null when the Namecheap account is not configured. */
 export function getDnsProvider(): DnsProvider | null {
   if (active === undefined) {
-    active = fromEnvironment();
-    if (!active) logger.info('Platform domain disabled: IDEPLOY_PLATFORM_DOMAIN / NAMECHEAP_* not set');
+    active = fromEnvironment(PLATFORM_DOMAIN);
+    if (!active) logger.info('Platform domain disabled: NAMECHEAP_* not set');
   }
   return active;
 }
 
+let legacy: DnsProvider | null | undefined;
+
+/** The zone of `idem.africa`, where the migration removes the records of moved applications. */
+export function getLegacyDnsProvider(): DnsProvider | null {
+  if (legacy === undefined) legacy = fromEnvironment(LEGACY_PLATFORM_DOMAIN);
+  return legacy;
+}
+
 /** Tests: register an in-memory provider (or null to switch the feature off). */
-export function setDnsProvider(provider: DnsProvider | null): void {
+export function setDnsProvider(provider: DnsProvider | null, legacyProvider?: DnsProvider | null): void {
   active = provider;
+  if (legacyProvider !== undefined) legacy = legacyProvider;
 }
 
 /** Tests: go back to reading the environment. */
 export function resetDnsProvider(): void {
   active = undefined;
+  legacy = undefined;
 }
