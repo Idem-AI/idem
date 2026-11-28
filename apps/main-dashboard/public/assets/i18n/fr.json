@@ -952,7 +952,8 @@
         "projectNotFound": "L'ID de projet '{{cookieId}}' du cookie est introuvable. Utilisation du premier projet à la place.",
         "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
       },
-      "simulations": "Simulations"
+      "simulations": "Simulations",
+      "team": "Équipe"
     },
     "colorCustomizer": {
       "title": "Ajuster les couleurs",
@@ -3609,6 +3610,27 @@
             "content": "{{done}} sur {{total}}",
             "videos": "{{done}} sur {{total}} déroulés"
           }
+        },
+        "periods": {
+          "title": "Vos périodes"
+        },
+        "briefOpen": "L'idée de la période",
+        "viewLabel": "Affichage",
+        "stats": {
+          "ready": "{{ready}} sur {{total}} publications prêtes",
+          "videos": "{{count}} vidéos",
+          "label": "Publications prêtes"
+        },
+        "calendar": {
+          "today": "Aujourd'hui",
+          "prev": "Mois précédent",
+          "next": "Mois suivant",
+          "dragHint": "Glissez une publication sur un autre jour pour changer sa date.",
+          "more": "+{{count}} autres",
+          "less": "Réduire"
+        },
+        "card": {
+          "videoReady": "Vidéo prête"
         }
       },
       "studio": {
@@ -3653,7 +3675,22 @@
             "text": "Écris-moi le texte à publier avec ce visuel."
           }
         },
-        "retouchPlaceholder": "Demandez une modification…"
+        "retouchPlaceholder": "Demandez une modification…",
+        "threads": {
+          "title": "Conversations",
+          "new": "Nouvelle conversation",
+          "empty": "Vos conversations apparaîtront ici.",
+          "delete": "Supprimer",
+          "deleteLabel": "Supprimer la conversation « {{title}} »",
+          "confirmDelete": "Supprimer ? Les visuels restent.",
+          "busyElsewhere": "Un visuel est en cours dans une autre conversation. Vous pourrez écrire dès qu'il sera prêt."
+        },
+        "proposals": {
+          "kept": "Retenue",
+          "other": "Autre proposition",
+          "keep": "Garder celle-ci",
+          "keepLabel": "Garder cette proposition à la place"
+        }
       },
       "library": {
         "title": "Mes visuels",
@@ -3952,27 +3989,8 @@
             "ctaDone": "Ouvrir le calendrier",
             "progress": "{{done}} sur {{total}} prêts"
           }
-        }
-      },
-      "guide": {
-        "show": "Comment ça marche ?",
-        "hide": "Masquer",
-        "plans": {
-          "title": "Comment ça marche ?",
-          "steps": {
-            "1": "Choisissez une période : IDEM prévoit vos publications, jour par jour, avec le texte prêt à poster.",
-            "2": "Cliquez sur une publication pour la lire, la modifier et créer son visuel en un clic.",
-            "3": "Le jour venu, ouvrez-la et publiez : le texte est copié, le réseau s'ouvre."
-          }
         },
-        "library": {
-          "title": "Comment ça marche ?",
-          "steps": {
-            "1": "Cliquez sur un visuel pour le voir en grand.",
-            "2": "Téléchargez-le, ou obtenez-le dans un autre format (story, bannière…).",
-            "3": "Publiez-le : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
-          }
-        }
+        "conversations": "Reprendre une conversation ({{count}})"
       },
       "video": {
         "list": {
@@ -4151,7 +4169,7 @@
           },
           "steps2": {
             "1": "Décrire",
-            "2": "Configurer"
+            "2": "Régler"
           },
           "chat": {
             "question": "Décrivez la vidéo que vous voulez",
@@ -4160,7 +4178,7 @@
             "attached": "Fichiers joints",
             "attach": "Joindre des fichiers",
             "uploading": "Envoi…",
-            "attachHint": "Photos, vidéos, modèle 3D (.glb), animation Lottie ou Rive : 8 fichiers au plus.",
+            "attachHint": "Photos et vidéos : 8 fichiers au plus.",
             "examplesTitle": "Pour vous lancer",
             "examples": {
               "ex1": "Annoncer nos soldes de fin d’année : −30 % sur toute la boutique jusqu’au 31 décembre.",
@@ -4178,7 +4196,7 @@
             "restore": "Revenir à ma version"
           },
           "config": {
-            "question": "Configurez votre vidéo",
+            "question": "Réglez votre vidéo",
             "help": "Quatre réglages, et c’est parti. Le reste est déjà réglé selon votre charte graphique.",
             "where": "Où allez-vous la publier ?",
             "whereHint": "Choisissez un ou plusieurs formats : chacun est livré dans sa vraie forme.",
@@ -4195,11 +4213,11 @@
             "hint": "Une voix dit le message, scène par scène, dans votre langue. Les scènes se calent sur elle."
           },
           "intent": {
-            "title": "Interprétation de la demande",
+            "title": "Ce que l'IA a compris",
             "proposal": "Proposition de l'IA",
             "correct": "Corriger",
             "done": "Valider",
-            "loading": "Je lis ta demande…",
+            "loading": "Je lis votre demande…",
             "objective": "Objectif",
             "mode": "Matière",
             "motion": "Mouvement",
@@ -4235,7 +4253,15 @@
               "minimal-broadcast": "Minimal"
             },
             "fieldsHint": "Ajoute ces informations à ta demande (étape 1), puis reviens ici."
-          }
+          },
+          "summary": {
+            "formats": "Formats",
+            "duration": "Durée",
+            "quality": "Qualité",
+            "media": "Fichiers joints"
+          },
+          "launch": "Créer la vidéo",
+          "editRequest": "Modifier ma demande"
         },
         "detail": {
           "back": "Mes vidéos",
@@ -4572,7 +4598,7 @@
       },
       "prompt": {
         "label": "Décrivez le visuel que vous voulez",
-        "placeholder": "Ex. : un visuel pour souhaiter une bonne année à nos clients",
+        "placeholder": "Ex. : un visuel pour souhaiter une bonne année à nos clients — vous pouvez joindre une photo",
         "send": "Créer",
         "advanced": "Options avancées",
         "price": "Un visuel : 2 crédits · une retouche : 1 crédit",
@@ -4593,7 +4619,26 @@
         "asFormat": "Le visuel doit être {{format}}.",
         "variants": "Me proposer 3 versions (5 crédits au lieu de 2)",
         "variantsShort": "3 versions",
-        "variantsPrompt": "Propose-moi 3 versions différentes."
+        "variantsPrompt": "Propose-moi 3 versions différentes.",
+        "attach": {
+          "add": "Joindre une image",
+          "list": "Images jointes",
+          "uploading": "Envoi…",
+          "remove": "Retirer {{name}}",
+          "roleLabel": "Ce que l'IA fait de {{name}}",
+          "roles": {
+            "auto": "L'IA décide",
+            "use": "À mettre dans le visuel",
+            "reference": "Modèle à imiter"
+          },
+          "errors": {
+            "video": "Ici, on crée des visuels fixes : pour une vidéo, ouvrez l'onglet Vidéos.",
+            "type": "Seules les images JPEG, PNG, WebP ou HEIC sont acceptées.",
+            "size": "Une image dépasse 10 Mo : elle n'a pas été jointe.",
+            "count": "4 images au plus par message.",
+            "upload": "L'image n'a pas pu être envoyée. Réessayez."
+          }
+        }
       }
     },
     "businessCards": {
@@ -5252,6 +5297,11 @@
           "body": "Un site vitrine, une API ou tout projet déjà sur GitHub.",
           "cta": "Choisir dans iDeploy"
         }
+      },
+      "shared": {
+        "title": "Les mises en ligne de « {{project}} »",
+        "body": "Les applications de ce projet sont dans iDeploy, dans l'espace que {{owner}} partage avec vous. Vous y voyez seulement celles de ce projet.",
+        "open": "Ouvrir dans iDeploy"
       }
     }
   },
@@ -5355,7 +5405,9 @@
       "pitchDeckNew": "Nouveau pitch deck",
       "legalDoc": "Document juridique",
       "legalDocEdit": "Édition du document juridique",
-      "builders": "Idem Builders"
+      "builders": "Idem Builders",
+      "team": "Équipe",
+      "invitation": "Invitation"
     }
   },
   "notFound": {
@@ -5984,6 +6036,7 @@
     "forgotTitle": "Choisir un mot de passe",
     "recoveryTitle": "Nouveau mot de passe",
     "continueWith": "Continuer avec {{provider}}",
+    "providerUnavailable": "Indisponible pour le moment",
     "or": "ou",
     "name": "Nom",
     "email": "Adresse e-mail",
@@ -6202,6 +6255,237 @@
         "COVER_UNREADABLE": "Cette image n’a pas pu être lue.",
         "COVER_GENERIC": "La couverture n’est pas partie. Réessayez."
       }
+    }
+  },
+  "team": {
+    "page": {
+      "title": "Équipe",
+      "subtitle": "Invitez les personnes qui travaillent avec vous sur « {{project}} », et choisissez ce que chacune peut voir ou modifier.",
+      "loading": "Chargement de l'équipe…",
+      "loadFailed": "L'équipe n'a pas pu être chargée.",
+      "retry": "Réessayer"
+    },
+    "common": {
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "levels": {
+      "none": "Aucun",
+      "read": "Voir",
+      "write": "Modifier"
+    },
+    "spaces": {
+      "branding": {
+        "label": "Identité visuelle",
+        "hint": "Logo, charte graphique, cartes de visite"
+      },
+      "businessPlan": {
+        "label": "Business plan",
+        "hint": "Le document et ses versions"
+      },
+      "pitchDeck": {
+        "label": "Pitch deck",
+        "hint": "Les présentations pour investisseurs"
+      },
+      "finance": {
+        "label": "Finances",
+        "hint": "Ventes, charges, prévisions, rapports"
+      },
+      "legal": {
+        "label": "Dossiers légaux",
+        "hint": "Statuts, contrats, documents juridiques"
+      },
+      "communication": {
+        "label": "Communication",
+        "hint": "Publications, visuels, vidéos, calendrier"
+      },
+      "website": {
+        "label": "Site internet et application",
+        "hint": "iCode : voir ou modifier le site"
+      },
+      "deployment": {
+        "label": "Mise en ligne et nom de domaine",
+        "hint": "iDeploy : publier le site, son adresse"
+      },
+      "simulation": {
+        "label": "Simulateur",
+        "hint": "Simulations et rapports"
+      },
+      "advisor": {
+        "label": "Conseiller",
+        "hint": "Les échanges avec le conseiller IA"
+      }
+    },
+    "roles": {
+      "partner": {
+        "label": "Associé",
+        "hint": "Voit et modifie tout le projet"
+      },
+      "viewer": {
+        "label": "Observateur",
+        "hint": "Voit tout, ne modifie rien. Pour un mentor, un investisseur"
+      },
+      "marketing": {
+        "label": "Communication",
+        "hint": "Gère la communication, voit la charte et le site"
+      },
+      "web": {
+        "label": "Site internet",
+        "hint": "Modifie le site et le met en ligne"
+      },
+      "finance": {
+        "label": "Finances",
+        "hint": "Business plan, finances, pitch deck, simulateur"
+      },
+      "custom": {
+        "label": "Sur mesure",
+        "hint": "Choisissez vous-même, espace par espace"
+      },
+      "groupHint": "Groupe de ce projet",
+      "counts": "Modifie {{write}} · voit {{read}}"
+    },
+    "summary": {
+      "write": "Modifie",
+      "read": "Voit",
+      "nothing": "Aucun accès",
+      "label": "Accès"
+    },
+    "editor": {
+      "quick": "Tout mettre à :",
+      "allRead": "Voir",
+      "allWrite": "Modifier",
+      "allNone": "Pas d'accès"
+    },
+    "invite": {
+      "title": "Inviter quelqu'un",
+      "subtitle": "La personne reçoit un e-mail et rejoint le projet quand elle accepte.",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "prenom@exemple.com",
+      "emailHint": "L'adresse de son compte IDEM.",
+      "roleLegend": "Ce qu'elle pourra faire",
+      "send": "Envoyer l'invitation",
+      "after": "Vous pourrez changer ses accès à tout moment.",
+      "sentTitle": "Invitation envoyée",
+      "sentBody": "Un e-mail est parti à {{email}}. L'invitation reste valable 14 jours.",
+      "open": "Inviter",
+      "stepOf": "Étape {{step}} sur 2",
+      "step1": "Qui voulez-vous inviter ?",
+      "step2": "Que pourra-t-elle faire ?",
+      "next": "Continuer",
+      "back": "Retour",
+      "preview": "Elle aura accès à"
+    },
+    "members": {
+      "title": "Personnes qui ont accès",
+      "you": "vous",
+      "owner": "Propriétaire",
+      "edit": "Modifier les accès",
+      "changeLegend": "Nouveau rôle",
+      "resend": "Renvoyer l'invitation",
+      "remove": "Retirer",
+      "removeAria": "Retirer {{name}} du projet",
+      "removeTitle": "Retirer cette personne du projet ?",
+      "removeBody": "{{name}} n'aura plus accès au projet. Ce qui a été fait reste dans le projet.",
+      "cancelInvite": "Annuler l'invitation",
+      "cancelInviteAria": "Annuler l'invitation de {{name}}",
+      "cancelInviteTitle": "Annuler l'invitation ?",
+      "cancelInviteBody": "Le lien reçu par {{name}} ne fonctionnera plus.",
+      "savedTitle": "Accès mis à jour",
+      "savedBody": "Les nouveaux accès s'appliquent tout de suite.",
+      "emptyTitle": "Vous êtes seul sur ce projet pour l'instant",
+      "emptyBody": "Invitez un associé, la personne qui gère votre communication ou celle qui construit votre site : chacun ne verra que ce que vous lui ouvrez.",
+      "emptyCta": "Inviter une personne",
+      "resendAria": "Renvoyer l'invitation à {{name}}",
+      "drawerEyebrow": "Accès",
+      "preview": "Accès avec ce rôle"
+    },
+    "status": {
+      "pending": "En attente de réponse",
+      "declined": "A refusé",
+      "expired": "Invitation expirée"
+    },
+    "groups": {
+      "title": "Groupes",
+      "subtitle": "Un groupe réunit des personnes qui ont les mêmes accès, par exemple « Équipe marketing ». Modifiez le groupe : tous ses membres suivent.",
+      "create": "Créer un groupe",
+      "createConfirm": "Créer le groupe",
+      "newTitle": "Nouveau groupe",
+      "editTitle": "Modifier le groupe",
+      "nameLabel": "Nom du groupe",
+      "namePlaceholder": "Équipe marketing",
+      "accessLabel": "Accès des membres du groupe",
+      "memberCount": "{{count}} personne(s)",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer le groupe « {{name}} » ?",
+      "deleteBody": "Ses membres gardent exactement les mêmes accès, réglés désormais un par un.",
+      "empty": "Aucun groupe. Une fois créé, il apparaît dans les rôles proposés à l'invitation.",
+      "createHint": "Des accès communs, réglés une fois",
+      "deleteAria": "Supprimer le groupe {{name}}"
+    },
+    "errors": {
+      "title": "Action impossible",
+      "generic": "Une erreur est survenue. Réessayez dans un instant.",
+      "no_account_title": "Aucun compte IDEM n'est associé à cette adresse.",
+      "no_account": "Vérifiez l'adresse e-mail, ou demandez à cette personne de créer son compte IDEM avec cette adresse, puis invitez-la à nouveau.",
+      "invalid_email": "Cette adresse e-mail n'est pas valide.",
+      "self_invite": "C'est votre propre adresse : vous avez déjà tous les accès.",
+      "already_member": "Cette personne fait déjà partie de l'équipe. Modifiez ses accès dans la liste.",
+      "already_invited": "Une invitation est déjà en attente pour cette adresse. Vous pouvez la renvoyer depuis la liste.",
+      "not_owner": "Seul le propriétaire du projet gère son équipe.",
+      "member_not_found": "Cette personne ne fait plus partie de l'équipe.",
+      "group_not_found": "Ce groupe n'existe plus.",
+      "invalid_role": "Choisissez ce que la personne pourra faire.",
+      "empty_permissions": "Ouvrez au moins un espace, en « Voir » ou en « Modifier ».",
+      "invitation_not_found": "Cette invitation n'existe plus : elle a peut-être été annulée.",
+      "invitation_expired": "Cette invitation a expiré. Demandez à la personne qui vous a invité de la renvoyer.",
+      "invitation_wrong_account": "Cette invitation est destinée à un autre compte. Connectez-vous avec l'adresse e-mail qui l'a reçue.",
+      "team_full": "La limite est atteinte pour ce projet.",
+      "invalid_name": "Donnez un nom au groupe (60 caractères au plus)."
+    },
+    "invitation": {
+      "loading": "Ouverture de l'invitation…",
+      "title": "Rejoindre le projet « {{project}} »",
+      "from": "{{name}} vous invite dans l'équipe de ce projet.",
+      "accessLabel": "Vous aurez accès à :",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "declinedDone": "Vous avez refusé cette invitation.",
+      "open": "Ouvrir le projet",
+      "toProjects": "Voir mes projets",
+      "errorTitle": "Invitation indisponible"
+    },
+    "received": {
+      "title": "Invitations reçues ({{count}})",
+      "line": "{{name}} vous invite sur le projet « {{project}} ».",
+      "joinedTitle": "Bienvenue dans l'équipe",
+      "joinedBody": "« {{project}} » est maintenant dans vos projets."
+    },
+    "card": {
+      "sharedBy": "Partagé par {{name}}",
+      "someone": "un membre",
+      "leave": "Quitter ce projet",
+      "leaveAria": "Quitter le projet {{name}}"
+    },
+    "leave": {
+      "title": "Quitter « {{project}} » ?",
+      "body": "Vous n'y aurez plus accès. Le propriétaire pourra vous inviter à nouveau.",
+      "confirm": "Quitter le projet",
+      "doneTitle": "Projet quitté",
+      "doneBody": "Vous ne faites plus partie de l'équipe de « {{project}} »."
+    },
+    "readOnly": {
+      "title": "Lecture seule",
+      "body": "Vous pouvez consulter « {{space}} » sans le modifier. Pour plus d'accès, demandez à {{owner}}.",
+      "blocked": "Vous avez accès à cet espace en lecture seule. Le propriétaire du projet peut vous donner le droit de modifier."
+    },
+    "tabs": {
+      "members": "Membres",
+      "groups": "Groupes"
+    },
+    "policyOwner": {
+      "title": "Accord du propriétaire nécessaire",
+      "body": "Ce projet attend que son propriétaire ({{owner}}) accepte les conditions d'utilisation avant toute génération. La fenêtre d'accord s'ouvre pour lui à sa prochaine génération sur ce projet."
     }
   }
 }

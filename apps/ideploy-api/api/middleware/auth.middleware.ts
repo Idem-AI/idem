@@ -14,6 +14,7 @@ import { Response, NextFunction } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { browserUserAgent, verifySession, syncUser } from '../services/idem-auth.service';
 import { resolveCurrentTeam } from '../services/user.service';
+import { IdemScope, scopeAllows, scopeFor } from '../services/idem-share.service';
 import { verifyPat } from '../services/pat.service';
 import { fail } from '../utils/response';
 import logger from '../config/logger';
@@ -34,7 +35,17 @@ export async function authenticate(
         const requestedTeam = req.headers['x-current-team']
           ? parseInt(String(req.headers['x-current-team']), 10)
           : undefined;
-        const currentTeamId = await resolveCurrentTeam(user.id, requestedTeam);
+        let currentTeamId = await resolveCurrentTeam(user.id, requestedTeam);
+        // L'équipe demandée n'est pas la sienne : peut-être celle d'un projet IDEM
+        // partagé avec lui. Il y entre, restreint aux applications du projet.
+        let idemScope: IdemScope | undefined;
+        if (requestedTeam && currentTeamId !== requestedTeam) {
+          const scope = await scopeFor(user.idem_uid, requestedTeam);
+          if (scope) {
+            currentTeamId = requestedTeam;
+            idemScope = scope;
+          }
+        }
         req.user = {
           id: user.id,
           idemUid: user.idem_uid,
@@ -42,8 +53,13 @@ export async function authenticate(
           name: user.name,
           currentTeamId,
           isSuperUser: profile.isSuperUser === true,
+          ...(idemScope ? { idemScope } : {}),
         };
         setTraceUser(user.id, currentTeamId);
+        if (idemScope && !scopeAllows(req.method, req.originalUrl.split('?')[0], req.body, idemScope)) {
+          fail(res, 'This shared project does not give you access to this resource.', 403, 'SHARED_PROJECT_SCOPE');
+          return;
+        }
         next();
         return;
       }

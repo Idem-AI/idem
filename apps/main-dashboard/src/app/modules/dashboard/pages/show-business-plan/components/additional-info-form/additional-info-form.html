@@ -193,7 +193,7 @@
           @if (members().length === 0) {
             <!-- Rien à remplir par défaut : une seule porte d'entrée, qui dit
                  ce qu'elle fait. -->
-            <button type="button" class="team-empty" (click)="addTeamMember()">
+            <button appWriteOnly type="button" class="team-empty" (click)="addTeamMember()">
               <span class="team-empty-icon" aria-hidden="true">
                 <i class="pi pi-user-plus"></i>
               </span>
@@ -256,7 +256,7 @@
 
                     <!-- Toujours disponible, même pour un seul membre : on doit
                          pouvoir défaire un ajout fait par erreur. -->
-                    <button
+                    <button appWriteOnly
                       type="button"
                       class="member-remove"
                       [attr.aria-label]="
@@ -375,7 +375,7 @@
                                 }}
                               </label>
                               @if (memberPicture(i)) {
-                                <button
+                                <button appWriteOnly
                                   type="button"
                                   class="picture-link is-muted"
                                   (click)="removePicture(i)"
@@ -476,7 +476,7 @@
               }
             </ul>
 
-            <button type="button" class="member-add" (click)="addTeamMember()">
+            <button appWriteOnly type="button" class="member-add" (click)="addTeamMember()">
               <i class="pi pi-plus text-[10px]" aria-hidden="true"></i>
               <span>{{ 'dashboard.additionalInfoForm.buttons.addMember' | translate }}</span>
             </button>

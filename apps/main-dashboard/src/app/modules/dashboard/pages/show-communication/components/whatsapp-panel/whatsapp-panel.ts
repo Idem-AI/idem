@@ -10,6 +10,7 @@ import { channelIcon } from '../../communication-ui';
 import { digitsOf, groupDigits, parseInternational } from './whatsapp-countries';
 import { WhatsappCodeField } from './whatsapp-code-field';
 import { WhatsappPhoneField } from './whatsapp-phone-field';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 const NETWORKS: PublishNetwork[] = ['linkedin', 'facebook', 'instagram', 'x'];
 
@@ -41,7 +42,7 @@ type ErrorSpot = 'phone' | 'code' | 'general';
  */
 @Component({
   selector: 'app-whatsapp-panel',
-  imports: [TranslateModule, RouterLink, DatePipe, IdemLoaderComponent, WhatsappPhoneField, WhatsappCodeField],
+  imports: [WriteOnlyDirective, TranslateModule, RouterLink, DatePipe, IdemLoaderComponent, WhatsappPhoneField, WhatsappCodeField],
   templateUrl: './whatsapp-panel.html',
   styleUrl: './whatsapp-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

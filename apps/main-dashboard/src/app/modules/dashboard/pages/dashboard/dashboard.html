@@ -83,181 +83,193 @@
           
           <div class="modules-grid">
             <!-- 1. Brand Identity -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/branding']"
-              [ngClass]="getStepState(0)"
-            >
-              <span class="step-watermark" aria-hidden="true">01</span>
+            @if (canOpen('/project/branding')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/branding']"
+                [ngClass]="getStepState(0)"
+              >
+                <span class="step-watermark" aria-hidden="true">01</span>
 
-              <!-- Emblème du module -->
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="branding" class="feature-icon-svg" />
-              </div>
+                <!-- Emblème du module -->
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="branding" class="feature-icon-svg" />
+                </div>
 
-              <!-- Info -->
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.brand.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.brand.description' | translate }}
-                </p>
-              </div>
+                <!-- Info -->
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.brand.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.brand.description' | translate }}
+                  </p>
+                </div>
 
-              <!-- Open CTA -->
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <!-- Open CTA -->
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
 
             <!-- 2. Business Plan -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/business-plan']"
-              [ngClass]="getStepState(1)"
-            >
-              <span class="step-watermark" aria-hidden="true">02</span>
+            @if (canOpen('/project/business-plan')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/business-plan']"
+                [ngClass]="getStepState(1)"
+              >
+                <span class="step-watermark" aria-hidden="true">02</span>
 
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="businessPlan" class="feature-icon-svg" />
-              </div>
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="businessPlan" class="feature-icon-svg" />
+                </div>
 
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.business.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.business.description' | translate }}
-                </p>
-              </div>
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.business.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.business.description' | translate }}
+                  </p>
+                </div>
 
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
 
             <!-- 3. Pitch Deck -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/pitch-deck']"
-              [ngClass]="getStepState(2)"
-            >
-              <span class="step-watermark" aria-hidden="true">03</span>
+            @if (canOpen('/project/pitch-deck')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/pitch-deck']"
+                [ngClass]="getStepState(2)"
+              >
+                <span class="step-watermark" aria-hidden="true">03</span>
 
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="pitchDeck" class="feature-icon-svg" />
-              </div>
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="pitchDeck" class="feature-icon-svg" />
+                </div>
 
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.pitchDeck.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.pitchDeck.description' | translate }}
-                </p>
-              </div>
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.pitchDeck.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.pitchDeck.description' | translate }}
+                  </p>
+                </div>
 
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
 
             <!-- 4. Financial Forecasts -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/finance']"
-              [ngClass]="getStepState(3)"
-            >
-              <span class="step-watermark" aria-hidden="true">04</span>
+            @if (canOpen('/project/finance')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/finance']"
+                [ngClass]="getStepState(3)"
+              >
+                <span class="step-watermark" aria-hidden="true">04</span>
 
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="finance" class="feature-icon-svg" />
-              </div>
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="finance" class="feature-icon-svg" />
+                </div>
 
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.finance.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.finance.description' | translate }}
-                </p>
-              </div>
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.finance.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.finance.description' | translate }}
+                  </p>
+                </div>
 
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
 
             <!-- 5. System Design -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/development/diagrams']"
-              [ngClass]="getStepState(4)"
-            >
-              <span class="step-watermark" aria-hidden="true">05</span>
+            @if (canOpen('/project/development/diagrams')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/development/diagrams']"
+                [ngClass]="getStepState(4)"
+              >
+                <span class="step-watermark" aria-hidden="true">05</span>
 
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="diagrams" class="feature-icon-svg" />
-              </div>
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="diagrams" class="feature-icon-svg" />
+                </div>
 
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.design.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.design.description' | translate }}
-                </p>
-              </div>
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.design.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.design.description' | translate }}
+                  </p>
+                </div>
 
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
 
             <!-- 6. Development -->
-            <button
-              class="module-card group"
-              [routerLink]="['/project/development']"
-              [ngClass]="getStepState(5)"
-            >
-              <span class="step-watermark" aria-hidden="true">06</span>
+            @if (canOpen('/project/development')) {
+              <button
+                class="module-card group"
+                [routerLink]="['/project/development']"
+                [ngClass]="getStepState(5)"
+              >
+                <span class="step-watermark" aria-hidden="true">06</span>
 
-              <div class="module-visualizer" aria-hidden="true">
-                <app-module-emblem kind="development" class="feature-icon-svg" />
-              </div>
+                <div class="module-visualizer" aria-hidden="true">
+                  <app-module-emblem kind="development" class="feature-icon-svg" />
+                </div>
 
-              <div class="module-details">
-                <h3 class="module-title">
-                  {{ 'dashboard.dashboard.steps.development.title' | translate }}
-                </h3>
-                <p class="module-description">
-                  {{ 'dashboard.dashboard.steps.development.description' | translate }}
-                </p>
-              </div>
+                <div class="module-details">
+                  <h3 class="module-title">
+                    {{ 'dashboard.dashboard.steps.development.title' | translate }}
+                  </h3>
+                  <p class="module-description">
+                    {{ 'dashboard.dashboard.steps.development.description' | translate }}
+                  </p>
+                </div>
 
-              <div class="module-cta">
-                <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
-                <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
+                <div class="module-cta">
+                  <span>{{ 'dashboard.dashboard.openFeature' | translate }}</span>
+                  <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            }
           </div>
         </main>
 

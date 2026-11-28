@@ -113,7 +113,7 @@
       </button>
 
       @if (firstMissing(); as target) {
-        <button #primaryButton type="button" class="inner-button si-primary" (click)="start()">
+        <button appWriteOnly #primaryButton type="button" class="inner-button si-primary" (click)="start()">
           <i class="pi pi-arrow-right" aria-hidden="true"></i>
           {{
             'dashboard.showCommunication.strategyInputs.goTo.' + target | translate

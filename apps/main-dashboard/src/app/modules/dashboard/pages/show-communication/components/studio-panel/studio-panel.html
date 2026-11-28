@@ -1,157 +1,312 @@
-<section class="sp-wrap">
-  @if (messages().length > 0) {
-    <div class="sp-toolbar">
-      <p class="sp-toolbar-hint">
-        {{ 'dashboard.showCommunication.studio.chatHint' | translate }}
-      </p>
-      <button type="button" class="sp-clear" (click)="clear()">
-        {{ 'dashboard.showCommunication.studio.clear' | translate }}
+<div class="sp" [class.sp-history-shown]="historyOpen()">
+  <!-- ═══════════════ Historique des conversations ═══════════════ -->
+  <aside
+    id="sp-history"
+    class="sp-history"
+    [attr.aria-label]="'dashboard.showCommunication.studio.threads.title' | translate"
+  >
+    <div class="sp-history-head">
+      <h2 class="sp-history-title">
+        {{ 'dashboard.showCommunication.studio.threads.title' | translate }}
+      </h2>
+      <button
+        type="button"
+        class="button-icon sp-history-close"
+        [attr.aria-label]="'common.close' | translate"
+        (click)="toggleHistory()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
       </button>
     </div>
-  }
 
-  <!-- ─────────────── Fil de conversation ─────────────── -->
-  <div class="sp-thread">
-    @if (isLoading()) {
-      <p class="sp-loading" role="status">
-        <idem-loader size="xs" />
+    <button type="button" class="outer-button button-sm sp-new" (click)="newConversation()">
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      {{ 'dashboard.showCommunication.studio.threads.new' | translate }}
+    </button>
+
+    @if (threadsLoading()) {
+      <p class="sp-history-loading" role="status"><idem-loader size="xs" /></p>
+    } @else if (threads().length === 0) {
+      <p class="sp-history-empty">
+        {{ 'dashboard.showCommunication.studio.threads.empty' | translate }}
       </p>
-    } @else if (messages().length === 0) {
-      <!-- Fil vide : une question, pas un mode d'emploi. La saisie est juste dessous. -->
-      <div class="sp-empty">
-        <h2 class="sp-empty-title">
-          {{ 'dashboard.showCommunication.studio.empty.title' | translate }}
-        </h2>
-        <p class="sp-empty-body">
-          {{ 'dashboard.showCommunication.studio.empty.body' | translate }}
-        </p>
-      </div>
     } @else {
-      <ol class="sp-messages" aria-live="polite">
-        @for (message of messages(); track message.id) {
-          <li>
-            @if (message.role === 'user') {
-              <p class="sp-bubble-user">{{ message.content }}</p>
-            } @else {
-              <div class="sp-assistant">
-                <p class="sp-assistant-text">{{ message.content }}</p>
-
-                <!-- Visuels produits par ce tour : la vignette ouvre l'aperçu -->
-                @if (visualsOf(message).length > 0) {
-                  <ul
-                    class="sp-visuals"
-                    [class.sp-visuals-multi]="visualsOf(message).length > 1"
-                  >
-                    @for (visual of visualsOf(message); track visual.id) {
-                      <li>
-                        <button
-                          type="button"
-                          class="sp-visual"
-                          (click)="openDialog(visual)"
-                        >
-                          <app-visual-thumb
-                            [visual]="visual"
-                            [label]="
-                              'dashboard.showCommunication.library.previewAlt'
-                                | translate: { title: visual.marketingText.headline }
-                            "
-                          />
-                          <span class="sp-visual-open">
-                            <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
-                            {{ 'dashboard.showCommunication.studio.openVisual' | translate }}
-                          </span>
-                        </button>
-                      </li>
-                    }
-                  </ul>
-                }
-
-                <!-- Texte du post, prêt à coller -->
-                @if (message.caption) {
-                  <div class="sp-caption">
-                    <h3 class="sp-caption-label">
-                      {{ 'dashboard.showCommunication.studio.caption' | translate }}
-                    </h3>
-                    <p class="sp-caption-text">{{ message.caption }}</p>
-                    <button
-                      type="button"
-                      class="outer-button button-sm"
-                      (click)="copy(message.caption, message.id)"
-                    >
-                      @if (copiedId() === message.id) {
-                        <i class="pi pi-check" aria-hidden="true"></i>
-                        {{ 'dashboard.showCommunication.studio.copied' | translate }}
-                      } @else {
-                        <i class="pi pi-copy" aria-hidden="true"></i>
-                        {{ 'dashboard.showCommunication.studio.copy' | translate }}
-                      }
-                    </button>
-                  </div>
-                }
-
-                @if (message.creditsSpent) {
-                  <p class="sp-credits">
-                    {{
-                      'dashboard.showCommunication.studio.creditsSpent'
-                        | translate: { count: message.creditsSpent }
-                    }}
-                  </p>
-                }
+      <ul class="sp-threads custom-scrollbar">
+        @for (thread of threads(); track thread.id) {
+          <li class="sp-thread-item" [class.sp-thread-active]="thread.id === chatId()">
+            @if (confirmDeleteId() === thread.id) {
+              <div class="sp-thread-confirm" role="group" [attr.aria-label]="thread.title">
+                <span class="sp-thread-confirm-text">
+                  {{ 'dashboard.showCommunication.studio.threads.confirmDelete' | translate }}
+                </span>
+                <button type="button" class="sp-thread-confirm-yes" (click)="deleteThread(thread)">
+                  {{ 'dashboard.showCommunication.studio.threads.delete' | translate }}
+                </button>
+                <button type="button" class="sp-thread-confirm-no" (click)="cancelDelete()">
+                  {{ 'common.cancel' | translate }}
+                </button>
               </div>
+            } @else {
+              <button
+                type="button"
+                class="sp-thread-open"
+                [attr.aria-current]="thread.id === chatId() ? 'true' : null"
+                (click)="selectThread(thread)"
+              >
+                @if (coverOf(thread); as cover) {
+                  <span class="sp-thread-cover" aria-hidden="true">
+                    <app-visual-thumb [visual]="cover" />
+                  </span>
+                } @else {
+                  <span class="sp-thread-cover sp-thread-cover-empty" aria-hidden="true">
+                    <i class="pi pi-comment"></i>
+                  </span>
+                }
+                <span class="sp-thread-text">
+                  <span class="sp-thread-title">{{ thread.title }}</span>
+                  <span class="sp-thread-date">{{ thread.updatedAt | date: 'd MMM, HH:mm' }}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="sp-thread-delete"
+                [attr.aria-label]="
+                  'dashboard.showCommunication.studio.threads.deleteLabel' | translate: { title: thread.title }
+                "
+                (click)="askDelete(thread)"
+              >
+                <i class="pi pi-trash" aria-hidden="true"></i>
+              </button>
             }
           </li>
         }
-      </ol>
+      </ul>
     }
+  </aside>
 
-    @if (isComposing()) {
-      <div class="sp-composing glass-card">
-        <app-visual-composing
-          [format]="composingFormat()"
-          [variants]="composingVariants()"
-        />
-      </div>
-    } @else if (isSending() && thinkingLabel()) {
-      <p class="sp-thinking" role="status" aria-live="polite">
-        <idem-loader size="xs" />
-        <span>{{ thinkingLabel() | translate }}</span>
-      </p>
-    }
+  @if (historyOpen()) {
+    <!-- Téléphone : toucher à côté du panneau le referme. -->
+    <button
+      type="button"
+      class="sp-history-scrim"
+      tabindex="-1"
+      [attr.aria-label]="'common.close' | translate"
+      (click)="toggleHistory()"
+    ></button>
+  }
 
-    <!-- Ce qu'on peut demander ensuite, dans les mots de tous les jours. -->
-    @if (canRetouch() && !isSending()) {
-      <div class="sp-followups">
-        <p class="sp-followups-label">
-          {{ 'dashboard.showCommunication.studio.followUpsLabel' | translate }}
+  <!-- ═══════════════ La conversation ouverte ═══════════════ -->
+  <section class="sp-wrap">
+    <div class="sp-toolbar">
+      <button
+        type="button"
+        class="outer-button button-sm sp-history-toggle"
+        aria-controls="sp-history"
+        [attr.aria-expanded]="historyOpen()"
+        (click)="toggleHistory()"
+      >
+        <i class="pi pi-history" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.studio.threads.title' | translate }}
+      </button>
+      @if (messages().length > 0) {
+        <p class="sp-toolbar-hint">
+          {{ 'dashboard.showCommunication.studio.chatHint' | translate }}
         </p>
-        <ul class="sp-starters sp-starters-left">
-          @for (followUp of followUps; track followUp) {
+        <button type="button" class="sp-clear" (click)="newConversation()">
+          <i class="pi pi-plus" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.studio.threads.new' | translate }}
+        </button>
+      }
+    </div>
+
+    <!-- ─────────────── Fil de conversation ─────────────── -->
+    <div class="sp-thread">
+      @if (isLoading()) {
+        <p class="sp-loading" role="status">
+          <idem-loader size="xs" />
+        </p>
+      } @else if (messages().length === 0) {
+        <!-- Fil vide : une question, pas un mode d'emploi. La saisie est juste dessous. -->
+        <div class="sp-empty">
+          <h2 class="sp-empty-title">
+            {{ 'dashboard.showCommunication.studio.empty.title' | translate }}
+          </h2>
+          <p class="sp-empty-body">
+            {{ 'dashboard.showCommunication.studio.empty.body' | translate }}
+          </p>
+        </div>
+      } @else {
+        <ol class="sp-messages" aria-live="polite">
+          @for (item of view(); track item.message.id) {
             <li>
-              <button type="button" class="sp-starter" (click)="useFollowUp(followUp)">
-                {{ 'dashboard.showCommunication.studio.followUps.' + followUp + '.label' | translate }}
-              </button>
+              @if (item.message.role === 'user') {
+                <div class="sp-user">
+                  @if (item.message.attachments?.length) {
+                    <ul class="sp-user-images">
+                      @for (attachment of item.message.attachments; track attachment.id) {
+                        <li class="sp-user-image">
+                          <img [src]="attachment.url" [alt]="attachment.name" width="96" height="96" loading="lazy" />
+                          @if (attachment.role !== 'auto') {
+                            <span class="tag sp-user-image-role">
+                              {{ 'dashboard.showCommunication.prompt.attach.roles.' + attachment.role | translate }}
+                            </span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (item.message.content) {
+                    <p class="sp-bubble-user">{{ item.message.content }}</p>
+                  }
+                </div>
+              } @else {
+                <div class="sp-assistant">
+                  <p class="sp-assistant-text">{{ item.message.content }}</p>
+
+                  <!-- Les propositions de ce tour, côte à côte : la retenue s'ouvre, l'autre se choisit. -->
+                  @if (item.cards.length > 0) {
+                    <ul class="sp-visuals" [class.sp-visuals-multi]="item.cards.length > 1">
+                      @for (card of item.cards; track card.key) {
+                        <li class="sp-card">
+                          <button
+                            type="button"
+                            class="sp-visual"
+                            [class.sp-visual-kept]="item.hasChoice && !card.alternativeId"
+                            [disabled]="!!card.alternativeId && !!choosingId()"
+                            [attr.aria-label]="
+                              (card.alternativeId
+                                ? 'dashboard.showCommunication.studio.proposals.keepLabel'
+                                : 'dashboard.showCommunication.studio.openVisual'
+                              ) | translate
+                            "
+                            (click)="openCard(card)"
+                          >
+                            <app-visual-thumb
+                              [visual]="card.shown"
+                              [label]="
+                                'dashboard.showCommunication.library.previewAlt'
+                                  | translate: { title: card.visual.marketingText.headline }
+                              "
+                            />
+                            <span class="sp-visual-open">
+                              @if (card.alternativeId) {
+                                <i class="pi pi-check" aria-hidden="true"></i>
+                                {{ 'dashboard.showCommunication.studio.proposals.keep' | translate }}
+                              } @else {
+                                <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
+                                {{ 'dashboard.showCommunication.studio.openVisual' | translate }}
+                              }
+                            </span>
+                            @if (choosingId() === card.alternativeId) {
+                              <idem-loader overlay />
+                            }
+                          </button>
+                          @if (item.hasChoice) {
+                            <p class="sp-card-label">
+                              {{
+                                (card.alternativeId
+                                  ? 'dashboard.showCommunication.studio.proposals.other'
+                                  : 'dashboard.showCommunication.studio.proposals.kept'
+                                ) | translate
+                              }}
+                            </p>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  <!-- Texte du post, prêt à coller -->
+                  @if (item.message.caption) {
+                    <div class="sp-caption">
+                      <h3 class="sp-caption-label">
+                        {{ 'dashboard.showCommunication.studio.caption' | translate }}
+                      </h3>
+                      <p class="sp-caption-text">{{ item.message.caption }}</p>
+                      <button
+                        type="button"
+                        class="outer-button button-sm"
+                        (click)="copy(item.message.caption, item.message.id)"
+                      >
+                        @if (copiedId() === item.message.id) {
+                          <i class="pi pi-check" aria-hidden="true"></i>
+                          {{ 'dashboard.showCommunication.studio.copied' | translate }}
+                        } @else {
+                          <i class="pi pi-copy" aria-hidden="true"></i>
+                          {{ 'dashboard.showCommunication.studio.copy' | translate }}
+                        }
+                      </button>
+                    </div>
+                  }
+
+                  @if (item.message.creditsSpent) {
+                    <p class="sp-credits">
+                      {{
+                        'dashboard.showCommunication.studio.creditsSpent'
+                          | translate: { count: item.message.creditsSpent }
+                      }}
+                    </p>
+                  }
+                </div>
+              }
             </li>
           }
-        </ul>
-      </div>
-    }
-  </div>
+        </ol>
+      }
 
-  <!-- ─────────────── Saisie ─────────────── -->
-  <div class="sp-composer">
-    <app-prompt-box
-      [(text)]="draft"
-      [busy]="isSending()"
-      [rows]="2"
-      [placeholder]="
-        canRetouch()
-          ? 'dashboard.showCommunication.studio.retouchPlaceholder'
-          : 'dashboard.showCommunication.prompt.placeholder'
-      "
-      (submitted)="sendText($event)"
-    />
-  </div>
-</section>
+      @if (showsTurn() && isComposing()) {
+        <div class="sp-composing glass-card">
+          <app-visual-composing [format]="composingFormat()" [variants]="composingVariants()" />
+        </div>
+      } @else if (showsTurn() && thinkingLabel()) {
+        <p class="sp-thinking" role="status" aria-live="polite">
+          <idem-loader size="xs" />
+          <span>{{ thinkingLabel() | translate }}</span>
+        </p>
+      } @else if (isSending() && !showsTurn()) {
+        <!-- Un visuel se fabrique dans une autre conversation : l'envoi attend qu'il soit fini. -->
+        <p class="sp-thinking" role="status">
+          <idem-loader size="xs" />
+          <span>{{ 'dashboard.showCommunication.studio.threads.busyElsewhere' | translate }}</span>
+        </p>
+      }
+
+      <!-- Ce qu'on peut demander ensuite, dans les mots de tous les jours. -->
+      @if (canRetouch() && !isSending()) {
+        <div class="sp-followups">
+          <p class="sp-followups-label">
+            {{ 'dashboard.showCommunication.studio.followUpsLabel' | translate }}
+          </p>
+          <ul class="sp-starters sp-starters-left">
+            @for (followUp of followUps; track followUp) {
+              <li>
+                <button type="button" class="sp-starter" (click)="useFollowUp(followUp)">
+                  {{ 'dashboard.showCommunication.studio.followUps.' + followUp + '.label' | translate }}
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <!-- ─────────────── Saisie ─────────────── -->
+    <div class="sp-composer">
+      <app-prompt-box
+        [projectId]="projectId()"
+        [(text)]="draft"
+        [busy]="isSending()"
+        [rows]="2"
+        [placeholder]="
+          canRetouch()
+            ? 'dashboard.showCommunication.studio.retouchPlaceholder'
+            : 'dashboard.showCommunication.prompt.placeholder'
+        "
+        (submitted)="send($event)"
+      />
+    </div>
+  </section>
+</div>
 
 <!-- ═══════════════ Aperçu d'un visuel ═══════════════ -->
 @if (openVisual(); as visual) {
@@ -162,7 +317,7 @@
     [plans]="plans()"
     (closed)="closeDialog()"
     (visualCreated)="visualCreated.emit($event)"
-    (visualChanged)="visualCreated.emit($event)"
+    (visualChanged)="onVisualChanged($event)"
     (failed)="failed.emit($event)"
   />
 }

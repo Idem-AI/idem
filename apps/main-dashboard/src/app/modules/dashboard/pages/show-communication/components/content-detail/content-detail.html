@@ -14,7 +14,7 @@
           [attr.aria-label]="'dashboard.showCommunication.detail.ai.edit' | translate"
         ></textarea>
         <div class="cd-edit-actions">
-          <button type="button" class="inner-button button-sm" [disabled]="aiBusy() || aiPrompt().trim().length < 3" (click)="sendAiEdit()">
+          <button appWriteOnly type="button" class="inner-button button-sm" [disabled]="aiBusy() || aiPrompt().trim().length < 3" (click)="sendAiEdit()">
             @if (aiBusy()) {
               <idem-loader size="xs" />
             } @else {
@@ -208,7 +208,7 @@
                     <i class="pi pi-play" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.openVideo' | translate }}
                   </button>
-                  <button type="button" class="outer-button button-sm" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
+                  <button appWriteOnly type="button" class="outer-button button-sm" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
                     <i class="pi pi-refresh" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.anotherVideo' | translate: { price: videoPrice() ?? '…' } }}
                   </button>
@@ -221,7 +221,7 @@
               } @else {
                 <!-- Le niveau de créativité se choisit sur le bouton (bulle), au moment de lancer. -->
                 <div class="cd-go">
-                  <button type="button" class="inner-button" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
+                  <button appWriteOnly type="button" class="inner-button" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
                     <i class="pi pi-video" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.createVideo' | translate: { price: videoPrice() ?? '…' } }}
                   </button>
@@ -260,7 +260,7 @@
               <i class="pi pi-download" aria-hidden="true"></i>
               {{ 'dashboard.showCommunication.visual.download' | translate }}
             </button>
-            <button
+            <button appWriteOnly
               type="button"
               class="outer-button button-sm"
               [disabled]="isCreatingVisual() || aiBusy()"
@@ -291,7 +291,7 @@
             <div class="cd-chips">
               @for (format of formats; track format) {
                 @if (format !== current.format) {
-                  <button
+                  <button appWriteOnly
                     type="button"
                     class="outer-button button-sm"
                     [disabled]="isCreatingVisual()"
@@ -351,7 +351,7 @@
 
             <!-- 3. Lancer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
             <div class="cd-go">
-              <button type="button" class="inner-button" [disabled]="isCreatingVisual()" (click)="createVisual()" appCreativityGate [(creativity)]="creativity" [creativityCost]="visualBaseCost()">
+              <button appWriteOnly type="button" class="inner-button" [disabled]="isCreatingVisual()" (click)="createVisual()" appCreativityGate [(creativity)]="creativity" [creativityCost]="visualBaseCost()">
                 @if (isCreatingVisual()) {
                   <idem-loader size="xs" />
                   {{ 'dashboard.showCommunication.detail.creating' | translate }}
@@ -427,7 +427,7 @@
               {{ 'dashboard.showCommunication.detail.fields.title' | translate }}
             </span>
             @if (editing() !== 'title') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('title')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('title')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -443,7 +443,7 @@
               [attr.aria-label]="'dashboard.showCommunication.detail.fields.title' | translate"
             />
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -468,7 +468,7 @@
               {{ 'dashboard.showCommunication.detail.fields.date' | translate }}
             </span>
             @if (editing() !== 'scheduledFor') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('scheduledFor')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('scheduledFor')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -492,7 +492,7 @@
               }}
             </p>
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -517,7 +517,7 @@
               {{ 'dashboard.showCommunication.detail.fields.channel' | translate }}
             </span>
             @if (editing() !== 'channel') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('channel')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('channel')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -559,7 +559,7 @@
               {{ 'dashboard.showCommunication.detail.fields.hook' | translate }}
             </span>
             @if (editing() !== 'hook') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('hook')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('hook')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -575,7 +575,7 @@
               [attr.aria-label]="'dashboard.showCommunication.detail.fields.hook' | translate"
             ></textarea>
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -602,7 +602,7 @@
               {{ 'dashboard.showCommunication.detail.fields.description' | translate }}
             </span>
             @if (editing() !== 'description') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('description')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('description')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -620,7 +620,7 @@
               "
             ></textarea>
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -661,7 +661,7 @@
                 </button>
               }
               @if (editing() !== 'caption') {
-                <button type="button" class="cd-edit-btn" (click)="startEdit('caption')">
+                <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('caption')">
                   <i class="pi pi-pencil" aria-hidden="true"></i>
                   {{ 'common.edit' | translate }}
                 </button>
@@ -681,7 +681,7 @@
               [attr.aria-label]="'dashboard.showCommunication.detail.fields.caption' | translate"
             ></textarea>
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -708,7 +708,7 @@
               {{ 'dashboard.showCommunication.detail.fields.hashtags' | translate }}
             </span>
             @if (editing() !== 'hashtags') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('hashtags')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('hashtags')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -730,7 +730,7 @@
               {{ 'dashboard.showCommunication.detail.hashtagsHint' | translate }}
             </p>
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -763,7 +763,7 @@
               {{ 'dashboard.showCommunication.detail.fields.callToAction' | translate }}
             </span>
             @if (editing() !== 'callToAction') {
-              <button type="button" class="cd-edit-btn" (click)="startEdit('callToAction')">
+              <button appWriteOnly type="button" class="cd-edit-btn" (click)="startEdit('callToAction')">
                 <i class="pi pi-pencil" aria-hidden="true"></i>
                 {{ 'common.edit' | translate }}
               </button>
@@ -782,7 +782,7 @@
               "
             />
             <div class="cd-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -820,7 +820,7 @@
           @if (confirmingDelete()) {
             <p class="cd-note">{{ 'dashboard.showCommunication.detail.deleteAsk' | translate }}</p>
             <div class="cd-edit-actions">
-              <button type="button" class="cd-delete-confirm" (click)="confirmDelete()">
+              <button appWriteOnly type="button" class="cd-delete-confirm" (click)="confirmDelete()">
                 <i class="pi pi-trash" aria-hidden="true"></i>
                 {{ 'dashboard.showCommunication.detail.deleteConfirm' | translate }}
               </button>
@@ -829,7 +829,7 @@
               </button>
             </div>
           } @else {
-            <button type="button" class="cd-delete-btn" (click)="askDelete()">
+            <button appWriteOnly type="button" class="cd-delete-btn" (click)="askDelete()">
               <i class="pi pi-trash" aria-hidden="true"></i>
               {{ 'dashboard.showCommunication.detail.delete' | translate }}
             </button>

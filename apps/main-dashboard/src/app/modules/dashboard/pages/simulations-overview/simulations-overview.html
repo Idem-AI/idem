@@ -12,7 +12,7 @@
       </div>
 
       @if (!isEmpty()) {
-        <button class="inner-button" (click)="openSimulator()">
+        <button appWriteOnly class="inner-button" (click)="openSimulator()">
           <i class="pi pi-bolt"></i>
           {{ 'dashboard.simulations.newRun' | translate }}
         </button>
@@ -98,7 +98,7 @@
         {{ 'dashboard.simulations.empty.body' | translate }}
       </p>
 
-      <button class="inner-button mt-6" (click)="openSimulator()">
+      <button appWriteOnly class="inner-button mt-6" (click)="openSimulator()">
         <i class="pi pi-bolt"></i>
         {{ 'dashboard.simulations.empty.cta' | translate }}
       </button>

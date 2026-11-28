@@ -1,37 +1,9 @@
-<section class="mx-auto max-w-7xl">
-  <!-- ─────────────── En-tête ─────────────── -->
-  <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
-    <div>
-      <h2 class="text-lg font-bold text-[var(--color-text-primary)]">
-        {{ 'dashboard.showCommunication.plans.title' | translate }}
-      </h2>
-      <p class="mt-1 max-w-2xl text-sm text-[var(--color-text-secondary)]">
-        {{ 'dashboard.showCommunication.plans.subtitle' | translate }}
-      </p>
-    </div>
-    <div class="flex items-center gap-2">
-      @if (plans().length > 0) {
-        <button type="button" class="outer-button button-sm" (click)="toggleArchived()">
-          <i class="pi pi-inbox" aria-hidden="true"></i>
-          @if (showArchived()) {
-            {{ 'dashboard.showCommunication.plans.hideArchived' | translate }}
-          } @else {
-            {{ 'dashboard.showCommunication.plans.showArchived' | translate }}
-          }
-        </button>
-      }
-      <button type="button" class="inner-button" (click)="openWizard()">
-        <i class="pi pi-plus" aria-hidden="true"></i>
-        {{ 'dashboard.showCommunication.plans.new' | translate }}
-      </button>
-    </div>
-  </div>
-
-  <app-screen-guide guideKey="plans" />
+<section class="pp">
+  <h2 class="sr-only">{{ 'dashboard.showCommunication.plans.title' | translate }}</h2>
 
   @if (generatingPlan(); as generating) {
     <app-plan-composing
-      class="mb-5"
+      class="pp-composing"
       [name]="generating.name"
       [start]="generating.period.start"
       [end]="generating.period.end"
@@ -40,73 +12,441 @@
     />
   }
 
-  <!-- ─────────────── Aucun planning ─────────────── -->
+  <!-- ─────────────── Aucune période ─────────────── -->
   @if (visiblePlans().length === 0) {
-    <div class="glass-card px-8 py-14 text-center">
-      <i class="pi pi-calendar text-5xl text-[var(--color-text-tertiary)]" aria-hidden="true"></i>
-      <h3 class="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
-        {{ 'dashboard.showCommunication.plans.empty.title' | translate }}
-      </h3>
-      <p class="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
-        {{ 'dashboard.showCommunication.plans.empty.body' | translate }}
-      </p>
-      <button type="button" class="inner-button mt-6" (click)="openWizard()">
+    <div class="glass-card pp-empty">
+      <i class="pi pi-calendar pp-empty-icon" aria-hidden="true"></i>
+      <h3 class="pp-empty-title">{{ 'dashboard.showCommunication.plans.empty.title' | translate }}</h3>
+      <p class="pp-empty-body">{{ 'dashboard.showCommunication.plans.empty.body' | translate }}</p>
+      <button type="button" class="inner-button" (click)="openWizard()">
         <i class="pi pi-plus" aria-hidden="true"></i>
         {{ 'dashboard.showCommunication.plans.empty.cta' | translate }}
       </button>
+      @if (plans().length > 0) {
+        <button type="button" class="pp-link" (click)="toggleArchived()">
+          {{ 'dashboard.showCommunication.plans.showArchived' | translate }}
+        </button>
+      }
     </div>
   } @else {
-    <!-- ─────────────── Bande des plannings ─────────────── -->
-    <ul class="pp-strip mb-5 flex flex-wrap gap-3" role="tablist">
-      @for (plan of visiblePlans(); track plan.id) {
-        <li>
+    @if (selectedPlan(); as plan) {
+      <!-- ═══════════════ Barre de la période ═══════════════ -->
+      <header class="pp-bar">
+        <!-- La période ouverte ; les autres dans le menu. Une seule est en cours. -->
+        <div class="pp-period">
           <button
             type="button"
-            role="tab"
-            class="glass min-w-[13rem] rounded-2xl p-3 text-left transition-all"
-            [class.is-selected]="selectedPlan()?.id === plan.id"
-            [attr.aria-selected]="selectedPlan()?.id === plan.id"
-            (click)="selectPlan(plan.id)"
+            class="pp-period-button"
+            aria-haspopup="listbox"
+            [attr.aria-expanded]="periodMenuOpen()"
+            aria-controls="pp-periods"
+            (click)="togglePeriodMenu()"
           >
-            <span class="flex items-center justify-between gap-2">
-              <span class="truncate font-semibold text-[var(--color-text-primary)]">
-                {{ plan.name }}
+            <span class="pp-period-icon" aria-hidden="true"><i class="pi pi-calendar"></i></span>
+            <span class="pp-period-text">
+              <span class="pp-period-name">
+                {{ cap(plan.name) }}
+                @if (plan.status === 'active') {
+                  <span class="pp-live">
+                    <span class="pp-live-dot" aria-hidden="true"></span>
+                    {{ 'dashboard.showCommunication.plans.status.active' | translate }}
+                  </span>
+                } @else {
+                  <span class="tag pp-period-status">
+                    {{ 'dashboard.showCommunication.plans.status.' + plan.status | translate }}
+                  </span>
+                }
               </span>
-              <span
-                class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase"
-                [class]="planStatusPillClass(plan.status)"
-              >
-                {{ 'dashboard.showCommunication.plans.status.' + plan.status | translate }}
-              </span>
+              <span class="pp-period-range">{{ planRange(plan) }}</span>
             </span>
-            <span class="mt-1 block text-xs text-[var(--color-text-secondary)]">
-              {{
-                'dashboard.showCommunication.plans.itemCount'
-                  | translate: { count: plan.items.length }
-              }}
-            </span>
+            <i class="pi pi-chevron-down pp-period-chevron" [class.pp-rotated]="periodMenuOpen()" aria-hidden="true"></i>
           </button>
-        </li>
-      }
-    </ul>
 
-    @if (selectedPlan(); as plan) {
-      <!-- ─────────────── Ce qu'on va raconter ─────────────── -->
-      <div class="glass-card mb-4 p-5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h3 class="text-base font-bold text-[var(--color-text-primary)]">{{ plan.name }}</h3>
-            <p class="mt-0.5 text-xs text-[var(--color-text-tertiary)]">{{ selectedRange() }}</p>
+          @if (periodMenuOpen()) {
+            <button
+              type="button"
+              class="pp-scrim"
+              tabindex="-1"
+              [attr.aria-label]="'common.close' | translate"
+              (click)="closePeriodMenu()"
+            ></button>
+            <div class="glass-card pp-menu">
+              <p class="pp-menu-title">{{ 'dashboard.showCommunication.plans.periods.title' | translate }}</p>
+              <ul id="pp-periods" class="pp-menu-list custom-scrollbar" role="listbox">
+                @for (candidate of visiblePlans(); track candidate.id) {
+                  <li role="option" [attr.aria-selected]="candidate.id === plan.id">
+                    <button
+                      type="button"
+                      class="pp-menu-item"
+                      [class.pp-menu-item-on]="candidate.id === plan.id"
+                      (click)="selectPlan(candidate.id)"
+                    >
+                      <span class="pp-menu-item-text">
+                        <span class="pp-menu-item-name">{{ cap(candidate.name) }}</span>
+                        <span class="pp-menu-item-meta">
+                          {{ planRange(candidate) }} ·
+                          {{ 'dashboard.showCommunication.plans.itemCount' | translate: { count: candidate.items.length } }}
+                        </span>
+                      </span>
+                      @if (candidate.status === 'active') {
+                        <span class="pp-live">
+                          <span class="pp-live-dot" aria-hidden="true"></span>
+                          {{ 'dashboard.showCommunication.plans.status.active' | translate }}
+                        </span>
+                      } @else {
+                        <span class="pp-menu-item-status">
+                          {{ 'dashboard.showCommunication.plans.status.' + candidate.status | translate }}
+                        </span>
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+              <div class="pp-menu-foot">
+                <button type="button" class="pp-link" (click)="toggleArchived()">
+                  <i class="pi pi-inbox" aria-hidden="true"></i>
+                  @if (showArchived()) {
+                    {{ 'dashboard.showCommunication.plans.hideArchived' | translate }}
+                  } @else {
+                    {{ 'dashboard.showCommunication.plans.showArchived' | translate }}
+                  }
+                </button>
+                <button type="button" class="pp-link" (click)="closePeriodMenu(); openWizard()">
+                  <i class="pi pi-plus" aria-hidden="true"></i>
+                  {{ 'dashboard.showCommunication.plans.new' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="pp-bar-actions">
+          <button
+            type="button"
+            class="outer-button button-sm"
+            aria-controls="pp-brief"
+            [attr.aria-expanded]="briefOpen()"
+            (click)="briefOpen.set(true)"
+          >
+            <i class="pi pi-lightbulb" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.plans.briefOpen' | translate }}
+          </button>
+
+          @if (plan.items.length > 0 && !isCompact()) {
+            <div class="pp-views" role="tablist" [attr.aria-label]="'dashboard.showCommunication.plans.viewLabel' | translate">
+              <button
+                type="button"
+                role="tab"
+                class="pp-view"
+                [class.pp-view-on]="view() === 'month'"
+                [attr.aria-selected]="view() === 'month'"
+                (click)="setView('month')"
+              >
+                <i class="pi pi-calendar" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.plans.viewMonth' | translate }}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="pp-view"
+                [class.pp-view-on]="view() === 'weeks'"
+                [attr.aria-selected]="view() === 'weeks'"
+                (click)="setView('weeks')"
+              >
+                <i class="pi pi-th-large" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.plans.viewWeeks' | translate }}
+              </button>
+            </div>
+          }
+
+          <button type="button" class="inner-button button-sm" (click)="openWizard()">
+            <i class="pi pi-plus" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.plans.new' | translate }}
+          </button>
+        </div>
+      </header>
+
+      <!-- Où en est la période, en une ligne. -->
+      @if (stats().total > 0) {
+        <div class="pp-progress">
+          <span class="pp-progress-text">
+            <strong>{{ 'dashboard.showCommunication.plans.stats.ready' | translate: { ready: stats().ready, total: stats().total } }}</strong>
+            @if (stats().videos > 0) {
+              <span aria-hidden="true">·</span>
+              {{ 'dashboard.showCommunication.plans.stats.videos' | translate: { count: stats().videos } }}
+            }
+          </span>
+          <span
+            class="pp-progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="stats().percent"
+            [attr.aria-label]="'dashboard.showCommunication.plans.stats.label' | translate"
+          >
+            <span class="pp-progress-fill" [style.width.%]="stats().percent"></span>
+          </span>
+        </div>
+      }
+
+      <!-- ═══════════════ Vue CALENDRIER ═══════════════ -->
+      @if (shownView() === 'month' && plan.items.length > 0) {
+        @if (shownMonth(); as month) {
+          <div class="glass-card pp-cal">
+            <div class="pp-cal-head">
+              <h3 class="pp-cal-title">{{ month.label }}</h3>
+              <div class="pp-cal-nav">
+                @if (todayInPlan()) {
+                  <button type="button" class="outer-button button-sm" (click)="goToday()">
+                    {{ 'dashboard.showCommunication.plans.calendar.today' | translate }}
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="button-icon pp-cal-arrow"
+                  [disabled]="shownMonthIndex() === 0"
+                  [attr.aria-label]="'dashboard.showCommunication.plans.calendar.prev' | translate"
+                  (click)="stepMonth(-1)"
+                >
+                  <i class="pi pi-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button
+                  type="button"
+                  class="button-icon pp-cal-arrow"
+                  [disabled]="shownMonthIndex() >= months().length - 1"
+                  [attr.aria-label]="'dashboard.showCommunication.plans.calendar.next' | translate"
+                  (click)="stepMonth(1)"
+                >
+                  <i class="pi pi-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            <p class="pp-cal-hint">
+              <i class="pi pi-arrows-alt" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.plans.calendar.dragHint' | translate }}
+            </p>
+
+            <div class="pp-grid" role="grid" [attr.aria-label]="month.label">
+              <div class="pp-grid-row pp-grid-weekdays" role="row">
+                @for (weekday of weekdays; track weekday) {
+                  <span class="pp-weekday" role="columnheader">
+                    {{ 'dashboard.showCommunication.plans.weekdays.' + weekday | translate }}
+                  </span>
+                }
+              </div>
+              @for (week of month.weeks; track $index) {
+                <div class="pp-grid-row" role="row">
+                  @for (cell of week; track cell.iso) {
+                    <div
+                      class="pp-day"
+                      role="gridcell"
+                      [class.pp-day-out]="!cell.inMonth"
+                      [class.pp-day-off]="!cell.inPeriod"
+                      [class.pp-day-today]="cell.isToday"
+                      [class.pp-day-past]="cell.isPast && cell.inPeriod"
+                      [class.pp-day-drop]="dropIso() === cell.iso"
+                      [class.pp-day-open]="expandedDay() === cell.iso"
+                      (dragover)="onDragOver(cell, $event)"
+                      (dragleave)="onDragLeave(cell)"
+                      (drop)="onDrop(cell, $event)"
+                    >
+                      <span class="pp-day-num">{{ cell.day }}</span>
+                      @if (cell.items.length > 0) {
+                        <ul class="pp-day-items">
+                          @for (item of cell.items; track item.id; let index = $index) {
+                            @if (index < dayPreview || expandedDay() === cell.iso) {
+                              <li>
+                                <button
+                                  type="button"
+                                  class="pp-chip"
+                                  [class.pp-chip-video]="isVideo(item)"
+                                  [class.pp-chip-ready]="isReady(item)"
+                                  [class.pp-chip-dragging]="dragItemId() === item.id"
+                                  draggable="true"
+                                  [attr.title]="item.title"
+                                  (dragstart)="onDragStart(item, $event)"
+                                  (dragend)="onDragEnd()"
+                                  (click)="openDetail(item)"
+                                >
+                                  @if (visualOf(item); as visual) {
+                                    @if (visual.imageUrl) {
+                                      <img class="pp-chip-img" [src]="visual.imageUrl" alt="" loading="lazy" />
+                                    }
+                                  } @else {
+                                    <span class="pp-chip-icon" aria-hidden="true">
+                                      <i [class]="isVideo(item) ? 'pi pi-video' : 'pi pi-image'"></i>
+                                    </span>
+                                  }
+                                  <span class="pp-chip-title">{{ item.title }}</span>
+                                  <i [class]="channelIcon(item.channel)" class="pp-chip-net" aria-hidden="true"></i>
+                                </button>
+                              </li>
+                            }
+                          }
+                        </ul>
+                        @if (cell.items.length > dayPreview) {
+                          <button type="button" class="pp-day-more" (click)="toggleDay(cell.iso)">
+                            @if (expandedDay() === cell.iso) {
+                              {{ 'dashboard.showCommunication.plans.calendar.less' | translate }}
+                            } @else {
+                              {{ 'dashboard.showCommunication.plans.calendar.more' | translate: { count: cell.items.length - dayPreview } }}
+                            }
+                          </button>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ═══════════════ Vue PAR SEMAINE ═══════════════ -->
+      @if (shownView() === 'weeks') {
+        @for (group of weeks(); track group.week) {
+          <section class="pp-week" [attr.aria-labelledby]="'pp-week-' + group.week">
+            <h3 class="pp-week-title" [id]="'pp-week-' + group.week">
+              {{ 'dashboard.showCommunication.plans.week' | translate: { week: group.week } }}
+              <span class="pp-week-range">{{ group.range }}</span>
+            </h3>
+            <ul class="pp-cards">
+              @for (item of group.items; track item.id) {
+                <li>
+                  <!-- TOUTE la carte est un bouton : elle ouvre la publication en entier. -->
+                  <button type="button" class="pp-card" (click)="openDetail(item)">
+                    <span class="pp-card-preview">
+                      @if (visualOf(item); as visual) {
+                        <app-visual-thumb
+                          class="pp-card-thumb"
+                          [visual]="visual"
+                          [label]="'dashboard.showCommunication.library.previewAlt' | translate: { title: item.title }"
+                        />
+                      } @else {
+                        <span class="pp-card-empty">
+                          @if (isVideo(item) && item.videoIds?.length) {
+                            <i class="pi pi-play-circle" aria-hidden="true"></i>
+                            {{ 'dashboard.showCommunication.plans.card.videoReady' | translate }}
+                          } @else {
+                            <i [class]="isVideo(item) ? 'pi pi-video' : 'pi pi-image'" aria-hidden="true"></i>
+                            {{ (isVideo(item) ? 'dashboard.showCommunication.plans.videoToDo' : 'dashboard.showCommunication.plans.visualToDo') | translate }}
+                          }
+                        </span>
+                      }
+                      <span class="pp-card-date">{{ day(item.scheduledFor) }}</span>
+                      @if (isVideo(item) && item.videoDurationSec) {
+                        <span class="pp-card-duration">
+                          <i class="pi pi-play" aria-hidden="true"></i>
+                          {{ clock(item.videoDurationSec) }}
+                        </span>
+                      }
+                    </span>
+                    <span class="pp-card-body">
+                      <span class="pp-card-title">{{ item.title }}</span>
+                      <span class="pp-card-net">
+                        <i [class]="channelIcon(item.channel)" aria-hidden="true"></i>
+                        {{ channelLabelKey(item.channel) | translate }}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+
+      @if (plan.items.length === 0 && generatingPlanId() !== plan.id) {
+        <div class="glass-card pp-empty">
+          <p class="pp-empty-body">{{ 'dashboard.showCommunication.plans.notGenerated' | translate }}</p>
+          <button appWriteOnly type="button" class="inner-button" (click)="generate(plan.id)">
+            <i class="pi pi-sparkles" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.plans.generate' | translate }}
+          </button>
+        </div>
+      }
+
+      <!-- ═══════════════ L'idée de la période : panneau de droite ═══════════════ -->
+      @if (briefOpen()) {
+        <div class="pp-drawer-scrim" (click)="briefOpen.set(false)" aria-hidden="true"></div>
+        <aside
+          id="pp-brief"
+          class="modal-drawer pp-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pp-brief-title"
+        >
+          <header class="pp-drawer-head">
+            <div class="min-w-0">
+              <p class="pp-drawer-eyebrow">{{ 'dashboard.showCommunication.plans.briefOpen' | translate }}</p>
+              <h3 id="pp-brief-title" class="pp-drawer-title">{{ cap(plan.name) }}</h3>
+              <p class="pp-drawer-range">{{ selectedRange() }}</p>
+            </div>
+            <button
+              #drawerClose
+              type="button"
+              class="button-icon pp-drawer-close"
+              [attr.aria-label]="'common.close' | translate"
+              (click)="briefOpen.set(false)"
+            >
+              <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
+          </header>
+
+          <div class="pp-drawer-body custom-scrollbar">
             @if (plan.objective) {
-              <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]">{{ plan.objective }}</p>
+              <section class="pp-drawer-block">
+                <h4 class="pp-drawer-label">{{ 'dashboard.showCommunication.plans.form.objective' | translate }}</h4>
+                <p class="pp-drawer-text">{{ plan.objective }}</p>
+              </section>
+            }
+            @if (plan.brief; as brief) {
+              @if (brief.keyMessage) {
+                <section class="pp-drawer-block">
+                  <h4 class="pp-drawer-label">{{ 'dashboard.showCommunication.plans.brief.keyMessage' | translate }}</h4>
+                  <p class="pp-drawer-quote">{{ brief.keyMessage }}</p>
+                </section>
+              }
+              @if (brief.angle) {
+                <section class="pp-drawer-block">
+                  <h4 class="pp-drawer-label">{{ 'dashboard.showCommunication.plans.brief.angle' | translate }}</h4>
+                  <p class="pp-drawer-text">{{ brief.angle }}</p>
+                </section>
+              }
+              @if (brief.themes.length > 0) {
+                <section class="pp-drawer-block">
+                  <h4 class="pp-drawer-label">{{ 'dashboard.showCommunication.plans.brief.themes' | translate }}</h4>
+                  <ul class="pp-drawer-tags">
+                    @for (theme of brief.themes; track theme.label) {
+                      <li class="tag" [attr.title]="theme.why">{{ theme.label }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+              @if (brief.successSignals.length > 0) {
+                <section class="pp-drawer-block">
+                  <h4 class="pp-drawer-label">{{ 'dashboard.showCommunication.plans.brief.signals' | translate }}</h4>
+                  <ul class="pp-drawer-list">
+                    @for (signal of brief.successSignals; track signal) {
+                      <li>
+                        <i class="pi pi-check" aria-hidden="true"></i>
+                        {{ signal }}
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
             }
           </div>
-          <div class="flex shrink-0 items-center gap-2">
+
+          <footer class="pp-drawer-foot">
             <button
+              appWriteOnly
               type="button"
               class="outer-button button-sm"
               [disabled]="generatingPlanId() === plan.id"
-              (click)="generate(plan.id)"
+              (click)="briefOpen.set(false); generate(plan.id)"
             >
               <i class="pi pi-refresh" aria-hidden="true"></i>
               @if (plan.items.length === 0) {
@@ -116,267 +456,13 @@
               }
             </button>
             @if (plan.status !== 'archived') {
-              <button type="button" class="outer-button button-sm" (click)="archive(plan.id)">
+              <button type="button" class="outer-button button-sm" (click)="briefOpen.set(false); archive(plan.id)">
                 <i class="pi pi-inbox" aria-hidden="true"></i>
                 {{ 'dashboard.showCommunication.plans.archive' | translate }}
               </button>
             }
-          </div>
-        </div>
-
-        @if (plan.brief) {
-          <!-- Au téléphone, l'idée du calendrier se replie : les publications d'abord. -->
-          <details class="pp-brief" [open]="!isCompact()">
-            <summary class="pp-brief-summary">
-              <i class="pi pi-lightbulb" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.plans.briefToggle' | translate }}
-              <i class="pi pi-chevron-down pp-brief-chevron" aria-hidden="true"></i>
-            </summary>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-              @if (plan.brief.angle) {
-                <div>
-                  <h4 class="pp-label">
-                    {{ 'dashboard.showCommunication.plans.brief.angle' | translate }}
-                  </h4>
-                  <p class="mt-1 text-sm text-[var(--color-text-primary)]">{{ plan.brief.angle }}</p>
-                </div>
-              }
-              @if (plan.brief.keyMessage) {
-                <div>
-                  <h4 class="pp-label">
-                    {{ 'dashboard.showCommunication.plans.brief.keyMessage' | translate }}
-                  </h4>
-                  <p class="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                    {{ plan.brief.keyMessage }}
-                  </p>
-                </div>
-              }
-              @if (plan.brief.themes.length > 0) {
-                <div>
-                  <h4 class="pp-label">
-                    {{ 'dashboard.showCommunication.plans.brief.themes' | translate }}
-                  </h4>
-                  <ul class="mt-1 flex flex-wrap gap-1.5">
-                    @for (theme of plan.brief.themes; track theme.label) {
-                      <li
-                        class="glass rounded-full px-2.5 py-1 text-xs text-[var(--color-text-primary)]"
-                        [title]="theme.why"
-                      >
-                        {{ theme.label }}
-                      </li>
-                    }
-                  </ul>
-                </div>
-              }
-              @if (plan.brief.successSignals.length > 0) {
-                <div>
-                  <h4 class="pp-label">
-                    {{ 'dashboard.showCommunication.plans.brief.signals' | translate }}
-                  </h4>
-                  <ul class="mt-1 list-inside list-disc text-sm text-[var(--color-text-secondary)]">
-                    @for (signal of plan.brief.successSignals; track signal) {
-                      <li>{{ signal }}</li>
-                    }
-                  </ul>
-                </div>
-              }
-            </div>
-          </details>
-        }
-      </div>
-
-      <!-- ─────────────── Bascule de vue ─────────────── -->
-      @if (plan.items.length > 0 && !isCompact()) {
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div class="glass inline-flex w-fit gap-1 rounded-2xl p-1" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              class="rounded-xl px-3 py-1.5 text-sm font-semibold"
-              [class.inner-button]="view() === 'weeks'"
-              [attr.aria-selected]="view() === 'weeks'"
-              (click)="setView('weeks')"
-            >
-              <i class="pi pi-list" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.plans.viewWeeks' | translate }}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              class="rounded-xl px-3 py-1.5 text-sm font-semibold"
-              [class.inner-button]="view() === 'month'"
-              [attr.aria-selected]="view() === 'month'"
-              (click)="setView('month')"
-            >
-              <i class="pi pi-calendar" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.plans.viewMonth' | translate }}
-            </button>
-          </div>
-          <p class="text-xs text-[var(--color-text-tertiary)]">
-            <i class="pi pi-info-circle" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.plans.clickHint' | translate }}
-          </p>
-        </div>
-      }
-
-      <!-- ─────────────── Vue LISTE par semaine ─────────────── -->
-      @if (shownView() === 'weeks') {
-        @for (group of weeks(); track group.week) {
-          <div class="mb-5">
-            <h4 class="pp-label mb-2">
-              {{ 'dashboard.showCommunication.plans.week' | translate: { week: group.week } }}
-            </h4>
-            <ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              @for (item of group.items; track item.id) {
-                <li>
-                  <!--
-                    TOUTE la carte est un bouton : son contenu détaillé (texte du
-                    post, mots-clés, date) était déjà produit et payé, mais aucun
-                    geste ne permettait d'y accéder.
-                  -->
-                  <button type="button" class="pp-card" (click)="openDetail(item)">
-                    <span class="pp-card-thumb">
-                      @if (visualOf(item); as visual) {
-                        <app-visual-thumb
-                          [visual]="visual"
-                          [label]="
-                            'dashboard.showCommunication.library.previewAlt'
-                              | translate: { title: item.title }
-                          "
-                        />
-                      } @else {
-                        <span class="pp-card-noimg">
-                          <i [class]="isVideo(item) ? 'pi pi-video' : 'pi pi-image'" aria-hidden="true"></i>
-                        </span>
-                      }
-                    </span>
-
-                    <span class="pp-card-body">
-                      <span class="pp-card-top">
-                        <span class="pp-card-title">{{ item.title }}</span>
-                        <span
-                          class="pp-card-status"
-                          [class]="statusPillClass(item.status)"
-                        >
-                          {{ 'dashboard.showCommunication.status.' + item.status | translate }}
-                        </span>
-                      </span>
-
-                      @if (item.occasion) {
-                        <span class="pp-card-occasion">
-                          <i class="pi pi-star-fill" aria-hidden="true"></i>
-                          {{ item.occasion }}
-                        </span>
-                      }
-
-                      <span class="pp-card-hook">{{ item.hook || item.description }}</span>
-
-                      <span class="pp-card-meta">
-                        <i
-                          [class]="channelIcon(item.channel)"
-                          aria-hidden="true"
-                        ></i>
-                        <span class="pp-card-day">{{ day(item.scheduledFor) }}</span>
-                        @if (isVideo(item)) {
-                          <!-- Vidéo : son type est dit sur la carte ; « Générer » créera ce type. -->
-                          <span class="pp-card-video">
-                            <i class="pi pi-video" aria-hidden="true"></i>
-                            {{ 'dashboard.showCommunication.video.types.' + (item.videoType || 'mix') + '.label' | translate }}
-                            @if (item.videoDurationSec) {
-                              · {{ videoLength(item.videoDurationSec) }}
-                            }
-                            @if (item.videoPlan) {
-                              · {{ (item.videoPlan.voiceover ? 'dashboard.showCommunication.detail.videoPlan.voiceOn' : 'dashboard.showCommunication.detail.videoPlan.voiceOff') | translate }}
-                            }
-                          </span>
-                          @if (!item.videoIds?.length) {
-                            <span class="pp-card-todo">
-                              {{ 'dashboard.showCommunication.plans.videoToDo' | translate }}
-                            </span>
-                          }
-                        } @else if (!visualOf(item)) {
-                          <span class="pp-card-todo">
-                            {{ 'dashboard.showCommunication.plans.visualToDo' | translate }}
-                          </span>
-                        }
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              }
-            </ul>
-          </div>
-        }
-      }
-
-      <!-- ─────────────── Vue CALENDRIER ─────────────── -->
-      @if (shownView() === 'month') {
-        @for (month of months(); track month.label) {
-          <div class="glass-card mb-4 overflow-x-auto p-4">
-            <h4 class="mb-3 font-semibold capitalize text-[var(--color-text-primary)]">
-              {{ month.label }}
-            </h4>
-            <table class="w-full min-w-[40rem] border-collapse text-xs">
-              <caption class="sr-only">
-                {{ 'dashboard.showCommunication.plans.monthCaption' | translate }}
-              </caption>
-              <thead>
-                <tr>
-                  @for (day of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']; track day) {
-                    <th scope="col" class="pp-weekday">
-                      {{ 'dashboard.showCommunication.plans.weekdays.' + day | translate }}
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (week of month.weeks; track $index) {
-                  <tr>
-                    @for (cell of week; track $index) {
-                      <td class="pp-day" [class.pp-day-out]="!cell.inPeriod">
-                        @if (cell.day > 0) {
-                          <span class="pp-day-num" [class.is-today]="cell.isToday">
-                            {{ cell.day }}
-                          </span>
-                          @for (item of cell.items; track item.id) {
-                            <button
-                              type="button"
-                              class="pp-day-item"
-                              [title]="item.title"
-                              (click)="openDetail(item)"
-                            >
-                              <i
-                                [class]="channelIcon(item.channel)"
-                                class="text-[9px]"
-                                aria-hidden="true"
-                              ></i>
-                              @if (isVideo(item)) {
-                                <i class="pi pi-video text-[9px]" aria-hidden="true"></i>
-                              }
-                              {{ item.title }}
-                            </button>
-                          }
-                        }
-                      </td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      }
-
-      @if (plan.items.length === 0 && generatingPlanId() !== plan.id) {
-        <div class="glass rounded-2xl px-6 py-10 text-center">
-          <p class="text-sm text-[var(--color-text-secondary)]">
-            {{ 'dashboard.showCommunication.plans.notGenerated' | translate }}
-          </p>
-          <button type="button" class="inner-button mt-4" (click)="generate(plan.id)">
-            <i class="pi pi-sparkles" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.plans.generate' | translate }}
-          </button>
-        </div>
+          </footer>
+        </aside>
       }
     }
   }

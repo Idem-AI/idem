@@ -14,6 +14,8 @@ interface ProviderButton {
   id: OAuthProvider;
   label: string;
   icon: string;
+  /** Fournisseur affiché mais momentanément désactivé côté IDEM. */
+  unavailable?: boolean;
 }
 
 /**
@@ -44,7 +46,10 @@ export class LoginCardComponent implements OnInit {
   protected readonly notice = signal<{ key: string; email?: string } | null>(null);
 
   private readonly allProviders: ProviderButton[] = [
-    { id: 'google', label: 'Google', icon: 'pi pi-google' },
+    // Google : connexion suspendue le temps de régler le problème côté compte
+    // d'IDEM. Le bouton reste visible pour signaler l'intention, mais il est
+    // désactivé et clairement marqué « indisponible pour le moment ».
+    { id: 'google', label: 'Google', icon: 'pi pi-google', unavailable: true },
     { id: 'linkedin_oidc', label: 'LinkedIn', icon: 'pi pi-linkedin' },
   ];
 
@@ -59,7 +64,12 @@ export class LoginCardComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     void this.supabase.enabledProviders().then((enabled) =>
-      this.providers.set(this.allProviders.filter((provider) => enabled.includes(provider.id))),
+      // Un fournisseur marqué « indisponible » est tout de même affiché : on
+      // le signale explicitement à l'utilisateur plutôt que de le faire
+      // disparaître sans explication.
+      this.providers.set(
+        this.allProviders.filter((provider) => provider.unavailable || enabled.includes(provider.id)),
+      ),
     );
 
     if (this.authService.callbackInProgress()) this.busy.set('callback');
@@ -90,6 +100,8 @@ export class LoginCardComponent implements OnInit {
   }
 
   protected async continueWith(provider: OAuthProvider): Promise<void> {
+    // Un fournisseur momentanément désactivé ne doit jamais partir en OAuth.
+    if (this.allProviders.find((entry) => entry.id === provider)?.unavailable) return;
     this.errorKey.set(null);
     this.busy.set(provider);
     try {

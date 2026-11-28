@@ -67,7 +67,7 @@
             <app-finance-illustration scene="empty" class="w-28 mx-auto" />
             <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.products' | translate }}</p>
             <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.products' | translate }}</p>
-            <button type="button" class="inner-button mt-5" (click)="addProduct()">
+            <button appWriteOnly type="button" class="inner-button mt-5" (click)="addProduct()">
               <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.product' | translate }}
             </button>
           </div>
@@ -80,7 +80,7 @@
                     <span class="fs-label">{{ 'dashboard.finance.fields.productName' | translate }}</span>
                     <input type="text" class="!w-full" [value]="p.name" [placeholder]="'dashboard.finance.examples.productName' | translate" (input)="setProductName(p.id, $any($event.target).value)" />
                   </label>
-                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: p.name || ('dashboard.finance.fields.unnamedProduct' | translate) }" (click)="removeProduct(p.id)">
+                  <button appWriteOnly type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: p.name || ('dashboard.finance.fields.unnamedProduct' | translate) }" (click)="removeProduct(p.id)">
                     <i class="pi pi-trash" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -130,7 +130,7 @@
               </article>
             }
           </div>
-          <button type="button" class="outer-button" (click)="addProduct()">
+          <button appWriteOnly type="button" class="outer-button" (click)="addProduct()">
             <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.product' | translate }}
           </button>
         }
@@ -177,7 +177,7 @@
               <app-finance-illustration scene="empty" class="w-28 mx-auto" />
               <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.variable' | translate }}</p>
               <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.variable' | translate }}</p>
-              <button type="button" class="inner-button mt-5" (click)="addVariableLine()">
+              <button appWriteOnly type="button" class="inner-button mt-5" (click)="addVariableLine()">
                 <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
               </button>
             </div>
@@ -198,7 +198,7 @@
                         }
                       </select>
                     </label>
-                    <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeVariableLine(line.id)">
+                    <button appWriteOnly type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeVariableLine(line.id)">
                       <i class="pi pi-trash" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -208,7 +208,7 @@
                 </article>
               }
             </div>
-            <button type="button" class="outer-button" (click)="addVariableLine()">
+            <button appWriteOnly type="button" class="outer-button" (click)="addVariableLine()">
               <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
             </button>
           }
@@ -254,7 +254,7 @@
                       }
                     </select>
                   </label>
-                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeFixedLine(line.id)">
+                  <button appWriteOnly type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: line.label }" (click)="removeFixedLine(line.id)">
                     <i class="pi pi-trash" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -263,7 +263,7 @@
                 </div>
               </article>
             }
-            <button type="button" class="outer-button" (click)="addFixedLine()">
+            <button appWriteOnly type="button" class="outer-button" (click)="addFixedLine()">
               <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.expense' | translate }}
             </button>
           </section>
@@ -280,7 +280,7 @@
                     <span class="fs-label">{{ 'dashboard.finance.fields.position' | translate }}</span>
                     <input type="text" class="!w-full" [value]="s.position" [placeholder]="'dashboard.finance.examples.position' | translate" (input)="updateSalary(s.id, { position: $any($event.target).value })" />
                   </label>
-                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: s.position }" (click)="removeSalary(s.id)">
+                  <button appWriteOnly type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: s.position }" (click)="removeSalary(s.id)">
                     <i class="pi pi-trash" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -289,7 +289,7 @@
                 </div>
               </article>
             }
-            <button type="button" class="outer-button" (click)="addSalary()">
+            <button appWriteOnly type="button" class="outer-button" (click)="addSalary()">
               <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.salary' | translate }}
             </button>
           </section>
@@ -319,7 +319,7 @@
             <app-finance-illustration scene="empty" class="w-28 mx-auto" />
             <p class="mt-3 font-medium text-text-primary">{{ 'dashboard.finance.empty.investments' | translate }}</p>
             <p class="mt-1 text-sm text-text-secondary">{{ 'dashboard.finance.examples.investments' | translate }}</p>
-            <button type="button" class="inner-button mt-5" (click)="addInvestment()">
+            <button appWriteOnly type="button" class="inner-button mt-5" (click)="addInvestment()">
               <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.investment' | translate }}
             </button>
           </div>
@@ -340,7 +340,7 @@
                       }
                     </select>
                   </label>
-                  <button type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: inv.label }" (click)="removeInvestment(inv.id)">
+                  <button appWriteOnly type="button" class="button-icon" [attr.aria-label]="'dashboard.finance.remove' | translate: { name: inv.label }" (click)="removeInvestment(inv.id)">
                     <i class="pi pi-trash" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -350,7 +350,7 @@
               </article>
             }
           </div>
-          <button type="button" class="outer-button" (click)="addInvestment()">
+          <button appWriteOnly type="button" class="outer-button" (click)="addInvestment()">
             <i class="pi pi-plus" aria-hidden="true"></i>{{ 'dashboard.finance.add.investment' | translate }}
           </button>
         }
@@ -721,7 +721,7 @@
       <span class="text-sm text-text-primary">{{ 'dashboard.finance.save.pending' | translate }}</span>
       <div class="flex gap-2">
         <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="discard()">{{ 'dashboard.finance.save.discard' | translate }}</button>
-        <button type="button" class="inner-button button-sm" [disabled]="saving()" (click)="save()">
+        <button appWriteOnly type="button" class="inner-button button-sm" [disabled]="saving()" (click)="save()">
           @if (saving()) { <idem-loader size="xs" /> }
           {{ 'common.save' | translate }}
         </button>

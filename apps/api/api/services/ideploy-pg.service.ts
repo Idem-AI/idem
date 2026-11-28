@@ -7,7 +7,7 @@ import type { IDeploySummary } from './ideploy.types';
  * Résout la team principale d'un utilisateur à partir de son email.
  * Priorité : personal_team=true, sinon la première team trouvée.
  */
-async function getTeamIdByEmail(email: string): Promise<number | null> {
+export async function getTeamIdByEmail(email: string): Promise<number | null> {
   const result = await pool.query<{ id: number }>(
     `SELECT t.id
      FROM teams t

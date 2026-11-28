@@ -32,6 +32,7 @@ import {
 } from '../../../../models/motion-video.model';
 import { downloadName } from '../../../../../../shared/utils/download-name';
 import { urlChoice, urlFlag, urlParam } from '../../url-state';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 const RATIOS: Record<VideoFormat, number> = {
   story: 9 / 16,
@@ -71,7 +72,7 @@ export type FileState = 'ready' | 'prepared' | 'working' | 'preparing' | 'outdat
  */
 @Component({
   selector: 'app-video-detail',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent, IdemVideoFormatPickerComponent],
+  imports: [WriteOnlyDirective, FormsModule, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent, IdemVideoFormatPickerComponent],
   templateUrl: './video-detail.html',
   styleUrl: './video-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

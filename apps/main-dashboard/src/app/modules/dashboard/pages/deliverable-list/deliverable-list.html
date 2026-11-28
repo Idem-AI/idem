@@ -33,7 +33,7 @@
         <p class="text-sm text-text-tertiary mt-1">{{ config.i18n + '.subtitle' | translate }}</p>
       </div>
       @if (cards().length > 0) {
-        <button type="button" class="inner-button dl-create" (click)="create()">
+        <button appWriteOnly type="button" class="inner-button dl-create" (click)="create()">
           <i class="pi pi-plus text-xs" aria-hidden="true"></i>
           <span>{{ config.i18n + '.create' | translate }}</span>
         </button>
@@ -51,7 +51,7 @@
         </div>
         <h2 class="text-xl font-bold text-text-primary mb-2">{{ config.i18n + '.empty.title' | translate }}</h2>
         <p class="text-text-tertiary mb-6 max-w-md mx-auto">{{ config.i18n + '.empty.subtitle' | translate }}</p>
-        <button type="button" class="inner-button" (click)="create()">
+        <button appWriteOnly type="button" class="inner-button" (click)="create()">
           {{ config.i18n + '.empty.action' | translate }}
         </button>
       </div>
@@ -131,7 +131,7 @@
                   <button type="button" class="dl-btn text-text-secondary" (click)="cancelDelete()" (keydown.escape)="cancelDelete()">
                     {{ 'common.cancel' | translate }}
                   </button>
-                  <button
+                  <button appWriteOnly
                     #confirmDeleteButton
                     type="button"
                     class="dl-btn dl-btn-danger"
@@ -145,7 +145,7 @@
               </div>
             } @else if (editingId() !== card.id) {
               <div class="dl-card-actions">
-                <button
+                <button appWriteOnly
                   type="button"
                   class="dl-icon-btn text-text-secondary"
                   [title]="'dashboard.deliverableList.actions.rename' | translate"

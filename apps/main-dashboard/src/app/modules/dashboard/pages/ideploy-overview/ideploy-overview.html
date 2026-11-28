@@ -5,6 +5,7 @@
       <h1 class="text-2xl md:text-3xl font-bold text-text-primary">{{ 'dashboard.goLive.title' | translate }}</h1>
       <p class="text-text-secondary mt-1 text-sm max-w-2xl">{{ 'dashboard.goLive.subtitle' | translate }}</p>
     </div>
+    @if (!isMember()) {
     <div class="flex items-center gap-2">
       <button
         type="button"
@@ -20,9 +21,27 @@
         <i class="pi pi-external-link" aria-hidden="true"></i>
       </button>
     </div>
+    }
   </header>
 
-  @if (loading() && !summary()) {
+  @if (isMember()) {
+    <!-- Membre de l'équipe : les applications du projet, dans l'espace iDeploy du propriétaire -->
+    <section class="glass-card p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6" aria-labelledby="gl-shared">
+      <app-site-app-illustration scene="golive" class="w-40 md:w-48 shrink-0" />
+      <div>
+        <h2 id="gl-shared" class="text-lg font-semibold text-text-primary">
+          {{ 'dashboard.goLive.shared.title' | translate: { project: currentProject.selected()?.name ?? '' } }}
+        </h2>
+        <p class="text-sm text-text-secondary mt-1 max-w-xl">
+          {{ 'dashboard.goLive.shared.body' | translate: { owner: currentProject.access()?.ownerName ?? '' } }}
+        </p>
+        <button type="button" class="inner-button mt-4" (click)="openSharedSpace()">
+          {{ 'dashboard.goLive.shared.open' | translate }}
+          <i class="pi pi-external-link" aria-hidden="true"></i>
+        </button>
+      </div>
+    </section>
+  } @else if (loading() && !summary()) {
     <!-- La forme de ce qui arrive -->
     <div class="space-y-4" aria-hidden="true">
       <div class="grid gap-4 grid-cols-1 sm:grid-cols-3">

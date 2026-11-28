@@ -23,6 +23,7 @@ import {
   SocialNetwork,
   StrategyBlock,
   StudioConversation,
+  StudioThread,
   TrendSignal,
   VisualIntent,
   VisualOrigin,
@@ -34,6 +35,8 @@ import {
   weekOfPeriod,
 } from './communication.migration';
 import { signedVisualImageUrl } from './visualUrl';
+import { studioThreadsOf } from './studio-threads';
+import type { ReferenceImage } from '../../../../ivision/core/src/reference/reference.analyzer';
 import { flyerImageCacheKey, invalidateVisualImage } from './visualImageCache';
 import { toContentChannel, toContentChannels } from './channels';
 import { getSocialConnector } from '../Connectors/social-providers.config';
@@ -216,6 +219,9 @@ export class CommunicationService extends GenericService {
       flyers: undefined,
       trends: undefined,
       momentSuggestions: undefined,
+      // Les conversations ont leurs propres routes : le module n'en charge que la liste, à la demande.
+      studio: undefined,
+      studioThreads: undefined,
     };
   }
 
@@ -232,6 +238,24 @@ export class CommunicationService extends GenericService {
     studio: StudioConversation
   ): Promise<void> {
     await this.patchCommunication(userId, projectId, (existing) => ({ ...existing, studio }));
+  }
+
+  /**
+   * Réécrit les conversations de l'atelier sur la version FRAÎCHE du modèle.
+   *
+   * L'ancien fil unique (`studio`) est rendu au patcher comme la conversation `main`, puis vidé :
+   * il n'existe plus qu'une seule source après le premier écrit.
+   */
+  async patchStudioThreads(
+    userId: string,
+    projectId: string,
+    patcher: (threads: StudioThread[]) => StudioThread[]
+  ): Promise<void> {
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      studioThreads: patcher(studioThreadsOf(existing)),
+      studio: { messages: [], updatedAt: new Date() },
+    }));
   }
 
   // ── Vidéos motion design ─────────────────────────────────────────────────
@@ -2068,6 +2092,10 @@ export class CommunicationService extends GenericService {
       creativity?: CreativityLevel;
       /** DÉCLINAISON : le visuel d'origine, dont les mots, l'image et l'idée sont repris (seule la composition change). */
       adaptFrom?: Flyer;
+      /** Photo fournie par l'utilisateur : c'est elle qui est posée dans le visuel, jamais une photo de banque. */
+      photoUrl?: string;
+      /** Modèle fourni par l'utilisateur : sa mise en page est reproduite à la charte, ni ses textes ni ses images. */
+      reference?: ReferenceImage & { url?: string };
     }
   ): Promise<Flyer> {
     const brief = (input.brief || '').trim();
@@ -2091,9 +2119,12 @@ export class CommunicationService extends GenericService {
       // trois fois le même visuel.
       `studio:${projectId}:${this.shortHash(brief)}:${format}:${input.variantIndex ?? 0}`,
       undefined,
-      input.withPhoto === false,
+      // Une photo fournie s'impose ; un modèle sans photo donne un visuel typographique.
+      !input.photoUrl && (input.withPhoto === false || input.reference?.hasPhoto === false),
       {
         creativity: input.creativity,
+        ...(input.photoUrl ? { image: { url: input.photoUrl } } : {}),
+        ...(input.reference ? { reference: input.reference } : {}),
         recentLayouts: this.recentVisualLayouts(await this.getCommunication(userId, projectId).catch(() => null)),
         ...(from?.spec && from.copy ? { adaptFrom: { spec: from.spec, copy: from.copy as any, ...(from.photo ? { photo: from.photo as any } : {}), ...(from.idea ? { concept: from.idea } : {}), format: from.format as FlyerFormat } } : {}),
       }
@@ -2172,6 +2203,8 @@ export class CommunicationService extends GenericService {
       withPhoto?: boolean;
       count?: number;
       creativity?: CreativityLevel;
+      photoUrl?: string;
+      reference?: ReferenceImage & { url?: string };
     }
   ): Promise<Flyer[]> {
     const count = Math.min(3, Math.max(1, input.count || 3));

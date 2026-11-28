@@ -5,6 +5,8 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { CurrentProjectService } from '../../../../shared/services/current-project.service';
+import { canOpenRoute } from '../../../../shared/utils/project-space-routes';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
@@ -37,6 +39,12 @@ export class DashboardComponent implements OnInit {
   private readonly tour = inject(TourService);
 
   readonly project = signal<ProjectModel | null>(null);
+  private readonly currentProject = inject(CurrentProjectService);
+
+  /** Un membre d'équipe ne voit que les modules qui lui sont ouverts. */
+  protected canOpen(route: string): boolean {
+    return canOpenRoute(this.currentProject.access(), route, 'read');
+  }
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string | null>(null);
 

@@ -39,7 +39,10 @@
         <!-- Fil du parcours assisté : visible uniquement dans le mode Assisté -->
         <app-guided-step-bar />
 
-        <router-outlet></router-outlet>
+        <!-- Lecture seule (membre d'équipe) : les champs de la page le deviennent aussi. -->
+        <div appReadOnlyFields class="contents">
+          <router-outlet></router-outlet>
+        </div>
       </div>
     </div>
 
@@ -50,6 +53,8 @@
     -->
     <div class="idem-float-stack float-stack" [class.float-stack--collapsed]="isSidebarCollapsed()">
       <app-next-step-bar />
+      <!-- Membre d'équipe sur un espace en lecture seule. -->
+      <app-read-only-notice />
       @if (floatingJourney(); as card) {
         <idem-journey-card
           variant="float"

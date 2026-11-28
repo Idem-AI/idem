@@ -10,7 +10,7 @@ import { isEditableSite } from '../siteEngine/edit.js';
 import { readPointed } from '../siteEngine/pointed.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
-import { forwardedCredentials } from '../middleware/auth.js';
+import { canEditWebsite, forwardedCredentials, projectAccessOf } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -74,6 +74,21 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Identité vérifiée par `requireIdemUser`, jamais un en-tête libre.
     const userId = req.idemUser?.uid ?? null;
+
+    // Sur le projet d'un autre (équipe), générer ou modifier le site demande
+    // l'espace « Site internet » en écriture. Un projet qui n'existe pas pour
+    // cette personne reçoit la même réponse qu'un projet inconnu.
+    if (typeof projectId === 'string' && projectId) {
+      const access = await projectAccessOf(req, projectId);
+      if (access === null) {
+        res.status(404).json({ error: 'project_not_found' });
+        return;
+      }
+      if (access !== 'unavailable' && !canEditWebsite(access)) {
+        res.status(403).json({ error: 'read_only', message: 'Vous avez accès à ce site en lecture seule.' });
+        return;
+      }
+    }
 
     console.log('\n REQUEST DATA:');
     console.log('  - Message count:', messages?.length || 0);

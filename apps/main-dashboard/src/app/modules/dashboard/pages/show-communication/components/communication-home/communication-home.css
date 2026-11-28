@@ -7,8 +7,8 @@
   display: flex;
   max-width: 44rem;
   flex-direction: column;
-  gap: 3rem;
-  padding-top: 1.5rem;
+  gap: 2rem;
+  padding-top: 0.75rem;
 }
 
 /* ── Une demande ponctuelle ───────────────────────────────────────────────── */
@@ -30,8 +30,27 @@
 }
 
 .ch-ask-box {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   text-align: left;
+}
+
+/* Une ligne, pas un bloc : reprendre une conversation commencée. */
+.ch-resume {
+  margin-top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.ch-resume:hover {
+  color: var(--color-primary-500);
+}
+
+.ch-resume .pi {
+  font-size: 0.75rem;
 }
 
 /* ── Le parcours ──────────────────────────────────────────────────────────── */
@@ -49,7 +68,7 @@
 }
 
 .ch-steps {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   padding: 0;
 }
 
@@ -57,7 +76,7 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding: 1rem 1.1rem;
+  padding: 0.8rem 0.95rem;
 }
 
 .ch-step + .ch-step {
@@ -125,8 +144,8 @@
 
 @media (max-width: 640px) {
   .ch {
-    gap: 2.25rem;
-    padding-top: 0.5rem;
+    gap: 1.75rem;
+    padding-top: 0.25rem;
   }
 
   .ch-ask-title {

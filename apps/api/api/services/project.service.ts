@@ -783,6 +783,8 @@ class ProjectService {
         siteId: deploymentData.siteId,
         url: deploymentData.url,
       });
+      // Une application publiée depuis iCode : l'équipe du projet la voit dans iDeploy.
+      void import('./team/ideploy-share.service').then(({ syncIdeploySharesLater }) => syncIdeploySharesLater(projectId));
 
       return saved;
     } catch (error: any) {

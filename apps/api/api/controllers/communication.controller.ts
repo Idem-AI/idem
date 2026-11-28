@@ -21,7 +21,15 @@ import {
 } from '../models/communication.model';
 import { refundRequestCredits } from '../middleware/billing.middleware';
 import { MissingProjectInputsError } from '../services/common/project-inputs';
-import { InsufficientCreditsError, StudioService } from '../services/Communication/studio.service';
+import {
+  InsufficientCreditsError,
+  MAX_STUDIO_ATTACHMENTS,
+  StudioService,
+  studioAttachmentFolder,
+} from '../services/Communication/studio.service';
+import sharp from 'sharp';
+import crypto from 'crypto';
+import { StorageService } from '../services/storage.service';
 import { verifyVisualImageToken } from '../services/Communication/visualUrl';
 import { SUPPORTED_NETWORKS } from '../services/Connectors/social-providers.config';
 import { getRequestLanguage } from '../utils/request-language';
@@ -1146,6 +1154,101 @@ export const clearStudioController = async (req: CustomRequest, res: Response): 
 };
 
 // ---------------------------------------------------------------------------
+// Les conversations de l'atelier
+// ---------------------------------------------------------------------------
+export const listStudioThreadsController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  try {
+    res.status(200).json({ threads: await studioService.listThreads(userId, projectId) });
+  } catch (error: any) {
+    logger.error(`listStudioThreadsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to list the conversations' });
+  }
+};
+
+export const getStudioThreadController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  try {
+    const thread = await studioService.getThread(userId, projectId, String(req.params.threadId || ''));
+    if (!thread) {
+      res.status(404).json({ message: 'conversation_not_found' });
+      return;
+    }
+    res.status(200).json(thread);
+  } catch (error: any) {
+    logger.error(`getStudioThreadController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to read the conversation' });
+  }
+};
+
+export const deleteStudioThreadController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  try {
+    await studioService.deleteThread(userId, projectId, String(req.params.threadId || ''));
+    res.status(200).json({ deleted: true });
+  } catch (error: any) {
+    logger.error(`deleteStudioThreadController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to delete the conversation' });
+  }
+};
+
+const storage = new StorageService();
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/studio/attachments   (multipart, champ `files`)
+//
+// Les images jointes au fil : une photo à poser dans le visuel ou un modèle à imiter.
+// Le PNG reste PNG (un produit détouré garde sa transparence), le reste passe en JPEG ;
+// toutes sont redressées et ramenées à 2 000 px.
+// ---------------------------------------------------------------------------
+export const uploadStudioAttachmentsController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const files = (((req as any).files as Express.Multer.File[] | undefined) || []).slice(0, MAX_STUDIO_ATTACHMENTS);
+  if (!files.length) {
+    res.status(400).json({ message: 'files are required' });
+    return;
+  }
+  try {
+    const folder = studioAttachmentFolder(userId, projectId);
+    const attachments = await Promise.all(
+      files.map(async (file) => {
+        const png = file.mimetype === 'image/png';
+        const pipeline = sharp(file.buffer).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true });
+        const { data, info } = await (png ? pipeline.png() : pipeline.jpeg({ quality: 88 })).toBuffer({ resolveWithObject: true });
+        const id = `img-${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;
+        const mimeType = png ? 'image/png' : 'image/jpeg';
+        const uploaded = await storage.uploadFile(data, `${id}.${png ? 'png' : 'jpg'}`, folder, mimeType);
+        return {
+          id,
+          url: uploaded.downloadURL,
+          name: (file.originalname || 'image').slice(0, 120),
+          mimeType,
+          role: 'auto' as const,
+          width: info.width,
+          height: info.height,
+        };
+      })
+    );
+    res.status(201).json({ attachments });
+  } catch (error: any) {
+    logger.error(`uploadStudioAttachmentsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: 'upload_failed' });
+  }
+};
+
+// ---------------------------------------------------------------------------
 // POST /project/communication/:projectId/studio/message   (SSE)
 //
 // Un tour de chat peut produire un visuel : une à trois minutes. Le flux SSE
@@ -1165,20 +1268,29 @@ export const studioMessageController = async (
   if (!projectId) return;
 
   const content = (req.body?.content || '').toString().trim();
-  if (!content) {
+  const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
+  if (!content && !attachments.length) {
     res.status(400).json({ message: 'content is required' });
     return;
   }
+  const threadId = typeof req.body?.threadId === 'string' ? req.body.threadId.slice(0, 80) : undefined;
 
   openSseStream(res);
 
   try {
-    const reply = await studioService.sendMessage(userId, projectId, content, async (event) => {
-      writeEvent(res, event);
-    });
+    const reply = await studioService.sendMessage(
+      userId,
+      projectId,
+      content,
+      { threadId, creativity: creativityOf(req), attachments },
+      async (event) => {
+        writeEvent(res, event);
+      }
+    );
     writeEvent(res, {
       type: 'complete',
       payload: {
+        thread: reply.thread,
         userMessage: reply.userMessage,
         assistantMessage: reply.assistantMessage,
         visuals: reply.visuals,

@@ -36,6 +36,7 @@ import { CreativityGateDirective } from '../../../../shared/components/creativit
 import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../shared/services/creativity.service';
 import { downloadName } from '../../../../shared/utils/download-name';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 /** Panneau de droite : consultation d'une carte ou saisie d'une personne. */
 type WorkspaceMode = 'view' | 'form';
@@ -50,7 +51,7 @@ type WorkspaceMode = 'view' | 'form';
  */
 @Component({
   selector: 'app-business-cards',
-  imports: [
+  imports: [WriteOnlyDirective, 
     OwnershipBarComponent,
     FormsModule,
     TranslateModule,

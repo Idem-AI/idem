@@ -116,7 +116,7 @@
                 }
                 <div class="wa-foot">
                   <p class="wa-hint"><i class="pi pi-lock" aria-hidden="true"></i> {{ 'dashboard.showCommunication.whatsapp.phone.privacy' | translate }}</p>
-                  <button type="button" class="inner-button" [disabled]="busy() || !phoneReady()" (click)="startLink()">
+                  <button appWriteOnly type="button" class="inner-button" [disabled]="busy() || !phoneReady()" (click)="startLink()">
                     @if (busy()) {
                       <idem-loader size="xs" />
                     }

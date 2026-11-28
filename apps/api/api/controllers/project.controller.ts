@@ -3,6 +3,8 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { parseProjectProduct, projectService } from '../services/project.service';
 import { ProjectModel } from '../models/project.model'; // Assuming ProjectModel is an interface/type
 import logger from '../config/logger';
+import { findProjectOwner, listSharedProjectAccess } from '../services/team/project-access.service';
+import { OWNER_ACCESS, ProjectAccess } from '../../../../packages/shared-models/src/projects/project-access.model';
 
 /**
  * Champs qu'aucune requête client ne peut écrire directement sur un projet.
@@ -36,6 +38,27 @@ function withoutProtectedFields<T extends Record<string, unknown>>(data: T): T {
   }
   return clean as T;
 }
+
+/** Projets partagés avec `uid`, lus chez leur propriétaire, avec les droits de `uid`. */
+async function sharedProjects(uid: string): Promise<Array<ProjectModel & { access: ProjectAccess }>> {
+  try {
+    const accesses = await listSharedProjectAccess(uid);
+    const loaded = await Promise.all(
+      [...accesses.entries()].map(async ([projectId, access]) => {
+        const owner = await findProjectOwner(projectId);
+        if (!owner) return null;
+        const project = await projectService.getUserProjectById(owner.ownerId, projectId);
+        return project ? { ...project, access } : null;
+      })
+    );
+    return loaded.filter((project): project is ProjectModel & { access: ProjectAccess } => project !== null);
+  } catch (error: any) {
+    // Les projets partagés ne doivent jamais empêcher d'afficher les siens.
+    logger.error(`Error loading shared projects: ${error.message}`);
+    return [];
+  }
+}
+
 
 class ProjectController {
   async createProject(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
@@ -95,8 +118,14 @@ class ProjectController {
         res.status(401).json({ message: 'User not authenticated' });
         return;
       }
-      const projects = await projectService.getAllUserProjects(userId);
-      logger.info(`Successfully fetched ${projects.length} projects.`);
+      const owned = (await projectService.getAllUserProjects(userId)).map((project) => ({
+        ...project,
+        access: OWNER_ACCESS,
+      }));
+      // Les projets où la personne est membre d'une équipe, à la suite des siens.
+      const shared = await sharedProjects(userId);
+      const projects = [...owned, ...shared];
+      logger.info(`Successfully fetched ${projects.length} projects (${shared.length} shared).`);
       res.status(200).json(projects);
     } catch (error: any) {
       logger.error(`Error in getAllProjects controller: ${error.message}`, {
@@ -133,7 +162,8 @@ class ProjectController {
         return;
       }
  logger.info(`Successfully fetched project ${projectId}.`);
-      res.status(200).json(project);
+      // `projectAccess` est posé quand un membre consulte le projet du propriétaire.
+      res.status(200).json({ ...project, access: req.projectAccess ?? OWNER_ACCESS });
     } catch (error: any) {
       logger.error(
         `Error in getProjectById controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
@@ -185,6 +215,22 @@ class ProjectController {
           `Update project attempt failed for projectId ${projectId}, userId ${userId}: No update data provided.`
         );
         res.status(400).json({ message: 'No update data provided' });
+        return;
+      }
+      // Un membre d'équipe (identité visuelle en écriture) ne change que l'identité
+      // visuelle : le reste du projet est repris tel qu'enregistré, pour qu'un
+      // envoi complet de `analysisResultModel` ne réécrive pas le business plan.
+      if (req.projectAccess) {
+        const branding = (updatedData.analysisResultModel as Record<string, unknown> | undefined)?.branding;
+        const stored = branding !== undefined ? await projectService.getUserProjectById(userId, projectId as string) : null;
+        if (!stored) {
+          res.status(403).json({ error: 'owner_only', message: 'Seul le propriétaire modifie les informations du projet.' });
+          return;
+        }
+        await projectService.editUserProject(userId, projectId as string, {
+          analysisResultModel: { ...(stored.analysisResultModel ?? {}), branding },
+        } as typeof updatedData);
+        res.status(200).json({ message: 'Project updated successfully' });
         return;
       }
       await projectService.editUserProject(userId, projectId as string, updatedData);

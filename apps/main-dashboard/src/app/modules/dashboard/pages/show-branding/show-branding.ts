@@ -30,6 +30,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdentityEditorComponent } from './components/identity-editor/identity-editor';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 import { downloadName } from '../../../../shared/utils/download-name';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 type LogoGround = 'light' | 'dark';
 
@@ -68,7 +69,7 @@ function readableInk(hex: string): string {
 
 @Component({
   selector: 'app-show-branding',
-  imports: [
+  imports: [WriteOnlyDirective, 
     OwnershipBarComponent,
     ErrorStateComponent,
     CommonModule,

@@ -44,7 +44,15 @@ export class HttpSimulationGateway extends SimulationGateway {
   override listProjects(): Observable<LinkedProject[]> {
     return this.http
       .get<Record<string, unknown>[]>(`${this.apiUrl}/projects`, { withCredentials: true })
-      .pipe(map((projects) => projects.map((project) => toLinkedProject(project))));
+      .pipe(
+        map((projects) =>
+          projects
+            // Les projets partagés par une équipe ne figurent ici que si l'espace
+            // « Simulateur » est ouvert à la personne (voir / modifier).
+            .filter((project) => opensSimulation(project['access']))
+            .map((project) => toLinkedProject(project)),
+        ),
+      );
   }
 
   override getProjectInputs(projectId: string): Observable<ProjectInputs> {
@@ -269,4 +277,12 @@ function fileNameFrom(header: string | null): string | null {
   }
   const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+/** Propriétaire (ou réponse ancienne sans droits) : oui ; membre : selon l'espace « Simulateur ». */
+function opensSimulation(access: unknown): boolean {
+  if (!access || typeof access !== 'object') return true;
+  const { role, permissions } = access as { role?: string; permissions?: Record<string, string> };
+  if (role !== 'member') return true;
+  return permissions?.['simulation'] === 'read' || permissions?.['simulation'] === 'write';
 }

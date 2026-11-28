@@ -46,6 +46,9 @@
           </button>
         </header>
 
+        <!-- Invitations reçues : rejoindre l'équipe d'un projet -->
+        <app-received-invitations (joined)="onJoined()" />
+
         <!-- Reprise du parcours assisté (mode Assisté uniquement) -->
         @if (showGuidedResume()) {
           <button
@@ -175,7 +178,7 @@
 
               <!-- Project Tile Cards -->
               @for (project of filteredProjects(); track project.id) {
-                <app-project-card [project]="project" (deleteProject)="openDeleteModal($event)" />
+                <app-project-card [project]="project" (deleteProject)="openDeleteModal($event)" (leaveProject)="projectToLeave.set($event)" />
               }
             </div>
 
@@ -305,3 +308,32 @@
       </div>
     </div>
   }
+
+<!-- Quitter un projet partagé -->
+@if (projectToLeave(); as project) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" (click)="projectToLeave.set(null)">
+    <div
+      class="modal-panel w-full max-w-md space-y-5 p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="leave-project-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h3 id="leave-project-title" class="text-lg font-bold text-text-primary">
+        {{ 'team.leave.title' | translate: { project: project.name } }}
+      </h3>
+      <p class="text-sm text-text-secondary">{{ 'team.leave.body' | translate }}</p>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="button-ghost button-sm" [disabled]="isLeaving()" (click)="projectToLeave.set(null)">
+          {{ 'team.common.cancel' | translate }}
+        </button>
+        <button type="button" class="inner-button button-sm bg-danger" [disabled]="isLeaving()" (click)="confirmLeaveProject()">
+          @if (isLeaving()) {
+            <idem-loader size="xs" />
+          }
+          <span>{{ 'team.leave.confirm' | translate }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

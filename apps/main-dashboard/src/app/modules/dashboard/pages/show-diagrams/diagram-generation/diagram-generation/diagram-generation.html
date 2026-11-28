@@ -4,7 +4,7 @@
     [title]="'dashboard.diagramGeneration.errors.title' | translate"
     [message]="generationError()"
   >
-    <button type="button" class="inner-button !gap-2" (click)="generateDiagrams()">
+    <button appWriteOnly type="button" class="inner-button !gap-2" (click)="generateDiagrams()">
       <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
       {{ 'common.retry' | translate }}
     </button>

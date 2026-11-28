@@ -42,6 +42,7 @@ import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 import { downloadName } from '../../../../shared/utils/download-name';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
 export type PreviewDocumentType = Extract<
@@ -111,7 +112,7 @@ function kindOf(selection: EditorSelection): ElementKind {
  */
 @Component({
   selector: 'app-document-preview',
-  imports: [
+  imports: [WriteOnlyDirective, 
     ErrorStateComponent,TranslateModule, EditorCanvasComponent, ZoomControlComponent, IdemLoaderComponent],
   templateUrl: './document-preview.html',
   styleUrl: './document-preview.css',

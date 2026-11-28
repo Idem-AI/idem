@@ -129,7 +129,7 @@
             {{ 'dashboard.showBusinessPlan.draft.subtitle' | translate: { count: expectedSectionNames().length } }}
           </p>
           <div class="flex justify-center">
-            <button type="button" class="inner-button" (click)="generateBusinessPlan(false)">
+            <button appWriteOnly type="button" class="inner-button" (click)="generateBusinessPlan(false)">
               {{ 'dashboard.showBusinessPlan.buttons.generate' | translate }}
             </button>
           </div>

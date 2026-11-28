@@ -29,6 +29,7 @@ import {
 import { StructureIllustrationComponent } from './structure-illustration/structure-illustration';
 import { businessPlanVariantLabel } from '../../../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** Une ligne du sommaire affiché à droite. */
 interface OutlineRow {
@@ -97,7 +98,7 @@ const AUDIENCES: BusinessPlanAudience[] = ['bank', 'investor', 'grant', 'interna
  */
 @Component({
   selector: 'app-business-plan-structure',
-  imports: [TranslateModule, StructureIllustrationComponent, IdemLoaderComponent],
+  imports: [WriteOnlyDirective, TranslateModule, StructureIllustrationComponent, IdemLoaderComponent],
   templateUrl: './business-plan-structure.html',
   styleUrl: './business-plan-structure.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

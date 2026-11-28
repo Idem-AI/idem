@@ -23,6 +23,7 @@ import { ProjectModel } from '@idem/shared-models';
 import { businessPlanVariantLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
 
@@ -32,7 +33,7 @@ type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
  */
 @Component({
   selector: 'app-show-business-plan',
-  imports: [
+  imports: [WriteOnlyDirective, 
     OwnershipBarComponent,
     ErrorStateComponent,
     DocumentPreviewComponent,

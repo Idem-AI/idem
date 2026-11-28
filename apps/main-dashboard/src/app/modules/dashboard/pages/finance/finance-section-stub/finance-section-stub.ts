@@ -37,6 +37,7 @@ import {
 import { FinanceIllustrationComponent } from '../finance-illustration/finance-illustration';
 import { MonthlyAmountEditorComponent } from '../monthly-amount-editor/monthly-amount-editor';
 import { FinanceModeSwitchComponent } from '../finance-mode-switch/finance-mode-switch';
+import { WriteOnlyDirective } from '../../../../team/directives/write-only.directive';
 
 type PageKind = 'step' | 'setting' | 'report';
 type LoanKey = 'compteCourantAssocies' | 'cmt' | 'creditBail';
@@ -68,7 +69,7 @@ const newId = (prefix: string): string =>
  */
 @Component({
   selector: 'app-finance-section-stub',
-  imports: [
+  imports: [WriteOnlyDirective, 
     RouterLink,
     TranslateModule,
     IdemLoaderComponent,

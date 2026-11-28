@@ -42,3 +42,40 @@
 .login-card__error {
   color: var(--color-danger);
 }
+
+/*
+ * Fournisseur momentanément indisponible : bouton grisé, badge discret à
+ * droite. On garde l'icône et le libellé lisibles pour que l'utilisateur
+ * comprenne de quel service il s'agit, puis on le stoppe au clic et au
+ * focus clavier (aria-disabled + disabled natif).
+ */
+.login-card__provider--unavailable {
+  cursor: not-allowed;
+  opacity: 0.72;
+  padding-right: 8.5rem;
+}
+
+.login-card__provider--unavailable:hover,
+.login-card__provider--unavailable:focus-visible {
+  opacity: 0.72;
+}
+
+.login-card__provider-label {
+  min-width: 0;
+}
+
+.login-card__provider-badge {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}

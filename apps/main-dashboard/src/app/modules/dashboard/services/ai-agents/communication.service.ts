@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, throwError, from } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { SseClient } from 'ngx-sse-client';
 import { CreativityLevel } from '@idem/shared-models';
 import { environment } from '../../../../../environments/environment';
@@ -25,8 +25,11 @@ import {
   Publication,
   PublicationStatus,
   SocialNetwork,
+  StudioAttachment,
   StudioConversation,
   StudioStreamEvent,
+  StudioThread,
+  StudioThreadSummary,
   VisualIntent,
   VisualOrigin,
 } from '../../models/communication.model';
@@ -501,6 +504,44 @@ export class CommunicationService {
       .pipe(catchError((err) => throwError(() => err)));
   }
 
+  /** GET …/studio/threads — l'historique, la conversation la plus récente en premier. */
+  listStudioThreads(projectId: string): Observable<StudioThreadSummary[]> {
+    return this.http
+      .get<{ threads: StudioThreadSummary[] }>(`${this.apiUrl}/${projectId}/studio/threads`)
+      .pipe(
+        map((res) => res.threads ?? []),
+        catchError((err) => throwError(() => err)),
+      );
+  }
+
+  /** GET …/studio/threads/:threadId — une conversation et ses messages. */
+  getStudioThread(projectId: string, threadId: string): Observable<StudioThread> {
+    return this.http
+      .get<StudioThread>(`${this.apiUrl}/${projectId}/studio/threads/${encodeURIComponent(threadId)}`)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** DELETE …/studio/threads/:threadId — les visuels produits restent dans la bibliothèque. */
+  deleteStudioThread(projectId: string, threadId: string): Observable<{ deleted: boolean }> {
+    return this.http
+      .delete<{ deleted: boolean }>(
+        `${this.apiUrl}/${projectId}/studio/threads/${encodeURIComponent(threadId)}`,
+      )
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST …/studio/attachments — images jointes au fil (4 au plus, 10 Mo chacune). */
+  uploadStudioAttachments(projectId: string, files: File[]): Observable<StudioAttachment[]> {
+    const body = new FormData();
+    for (const file of files) body.append('files', file, file.name);
+    return this.http
+      .post<{ attachments: StudioAttachment[] }>(`${this.apiUrl}/${projectId}/studio/attachments`, body)
+      .pipe(
+        map((res) => res.attachments ?? []),
+        catchError((err) => throwError(() => err)),
+      );
+  }
+
   /**
    * POST …/studio/message en SSE.
    *
@@ -508,7 +549,34 @@ export class CommunicationService {
    * recomposerait un visuel et débiterait une seconde fois. Un tour de chat n'est
    * pas idempotent — contrairement aux générations en GET.
    */
-  streamStudioMessage(projectId: string, content: string): Observable<StudioStreamEvent> {
+  streamStudioMessage(
+    projectId: string,
+    turn: {
+      content: string;
+      /** Absent : une nouvelle conversation commence (l'événement `thread` donne son id). */
+      threadId?: string | null;
+      creativity?: CreativityLevel;
+      attachments?: StudioAttachment[];
+    },
+  ): Observable<StudioStreamEvent> {
+    const body = {
+      content: turn.content,
+      ...(turn.threadId ? { threadId: turn.threadId } : {}),
+      ...(turn.creativity ? { creativity: turn.creativity } : {}),
+      ...(turn.attachments?.length
+        ? {
+            attachments: turn.attachments.map(({ id, url, name, mimeType, role, width, height }) => ({
+              id,
+              url,
+              name,
+              mimeType,
+              role,
+              width,
+              height,
+            })),
+          }
+        : {}),
+    };
     return from(this.tokenService.getTokenAsync()).pipe(
       switchMap((token: string | null) => {
         return new Observable<StudioStreamEvent>((observer) => {
@@ -517,7 +585,7 @@ export class CommunicationService {
               `${this.apiUrl}/${projectId}/studio/message`,
               { keepAlive: false, responseType: 'event' },
               {
-                body: { content },
+                body,
                 headers: {
                   'Content-Type': 'application/json',
                   ...(token ? { Authorization: `Bearer ${token}` } : {}),

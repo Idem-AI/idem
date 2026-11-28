@@ -663,5 +663,9 @@
       "body": "You need {{missing}} more credits for this action.",
       "cta": "Top up"
     }
+  },
+  "projectAccess": {
+    "readOnlyTitle": "只读",
+    "readOnlyBody": "您可以查看此网站，但不能修改。项目所有者可以在“团队”页面授予您编辑权限。"
   }
 }

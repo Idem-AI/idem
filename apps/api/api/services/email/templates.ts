@@ -639,3 +639,60 @@ export function suspiciousDevice(params: SuspiciousDeviceParams): RenderedEmail 
     ]),
   };
 }
+
+// ============================================
+// ÉQUIPE D'UN PROJET
+// ============================================
+
+export interface ProjectInvitationParams {
+  firstName?: string;
+  inviterName: string;
+  projectName: string;
+  /** Les espaces ouverts, déjà rédigés : « Communication — peut modifier ». */
+  accessLines: string[];
+  acceptUrl: string;
+  declineUrl: string;
+  expiresAt: Date;
+}
+
+export function projectInvitation(params: ProjectInvitationParams): RenderedEmail {
+  const body = [
+    paragraph(greeting(params.firstName)),
+    paragraph(
+      `<strong>${escapeHtml(params.inviterName)}</strong> vous invite à rejoindre l'équipe du projet <strong>${escapeHtml(params.projectName)}</strong> sur IDEM.`
+    ),
+    paragraph('Voici ce à quoi vous aurez accès :'),
+    bullets(params.accessLines.map((line) => escapeHtml(line))),
+    choiceButtons(
+      { label: "Accepter l'invitation", url: params.acceptUrl },
+      { label: 'Refuser', url: params.declineUrl }
+    ),
+    paragraph(
+      `Cette invitation est valable jusqu'au <strong>${formatDate(params.expiresAt)}</strong>. Elle ne s'ouvre qu'avec votre compte IDEM, celui de cette adresse.`
+    ),
+  ].join('');
+
+  return {
+    subject: `${params.inviterName} vous invite sur le projet ${params.projectName}`,
+    html: renderEmail({
+      title: 'Invitation à rejoindre une équipe',
+      subtitle: params.projectName,
+      preheader: `${params.inviterName} vous invite à travailler sur ${params.projectName}.`,
+      body,
+      footerNote:
+        "Vous ne connaissez pas cette personne ? Ignorez ce message : rien ne change tant que vous n'acceptez pas.",
+    }),
+    text: toPlainText(
+      'Invitation à rejoindre une équipe',
+      [
+        greetingText(params.firstName),
+        `${params.inviterName} vous invite à rejoindre l'équipe du projet ${params.projectName} sur IDEM.`,
+        'Vous aurez accès à :',
+        params.accessLines.map((line) => `- ${line}`).join('\n'),
+        `Refuser : ${params.declineUrl}`,
+        `Valable jusqu'au ${formatDate(params.expiresAt)}.`,
+      ],
+      { label: "Accepter l'invitation", url: params.acceptUrl }
+    ),
+  };
+}

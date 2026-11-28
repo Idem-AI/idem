@@ -119,4 +119,4 @@ export function urlChoice<T extends string>(name: string, values: readonly T[], 
 }
 
 /** Les paramètres propres aux écrans : vidés quand on change d'écran (un visuel ouvert ne doit pas revenir ailleurs). */
-export const SCREEN_PARAMS = ['plan', 'post', 'cal', 'new', 'visual', 'format', 'origin', 'from', 'archived'] as const;
+export const SCREEN_PARAMS = ['plan', 'post', 'cal', 'new', 'visual', 'format', 'origin', 'from', 'archived', 'chat', 'history', 'brief', 'm'] as const;

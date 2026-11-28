@@ -22,8 +22,11 @@ import { useTour } from './hooks/useTour';
 import { eventEmitter } from './components/AiChat/utils/EventEmitter';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { consumePromptParam, setStartPrompt } from './utils/startPrompt';
+import { getProjectAccess } from './api/persistence/db';
+import useProjectAccessStore from './stores/projectAccessSlice';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
+const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
 
 // View states managed by App
 type AppView = 'loading' | 'landing' | 'chat';
@@ -33,6 +36,7 @@ function App() {
   const { openLoginModal } = useUserStore();
   useInit();
   const { initDraft, setPendingIntent, updateDraftMetadata } = useAppGenContextStore();
+  const setAccessStatus = useProjectAccessStore((state) => state.setStatus);
 
   const [view, setView] = useState<AppView>('loading');
 
@@ -66,6 +70,19 @@ function App() {
     }
 
     initDraft();
+
+    // Un projet peut être celui d'un autre (équipe) : sans l'espace « Site
+    // internet », on n'ouvre rien — même réponse qu'une page inexistante ; en
+    // lecture seule, le site se montre sans la saisie du chat.
+    if (projectId) {
+      void getProjectAccess(projectId).then((access) => {
+        if (access === 'denied') {
+          window.location.replace(`${DASHBOARD_URL}/not-found`);
+          return;
+        }
+        if (access !== 'unknown') setAccessStatus(access);
+      });
+    }
 
     // La landing est la page d'accueil pour tout le monde, connecté ou non :
     // un utilisateur connecté y voit son profil en haut, et n'entre dans

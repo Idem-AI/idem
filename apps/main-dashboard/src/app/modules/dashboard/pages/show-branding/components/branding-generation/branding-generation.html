@@ -224,7 +224,7 @@
         {{ 'dashboard.brandingGeneration.errors.title' | translate }}
       </h2>
       <p class="text-text-secondary mb-6">{{ generationError() }}</p>
-      <button type="button" class="inner-button w-full" (click)="generateBranding()">
+      <button appWriteOnly type="button" class="inner-button w-full" (click)="generateBranding()">
         <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
         <span>{{ 'common.retry' | translate }}</span>
       </button>

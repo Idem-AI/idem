@@ -10,6 +10,11 @@ export interface AuthUser {
   currentTeamId: number | null;
   /** Platform super user (from the central API): no plan limits apply. */
   isSuperUser?: boolean;
+  /**
+   * Membre d'un projet IDEM partagé, agissant dans l'équipe du propriétaire :
+   * seules les applications du projet lui sont ouvertes (services/idem-share.service).
+   */
+  idemScope?: import('../services/idem-share.service').IdemScope;
 }
 
 /** Express request augmented with the authenticated user (from the session). */

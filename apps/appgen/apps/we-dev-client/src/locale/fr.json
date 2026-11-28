@@ -1506,5 +1506,9 @@
       "older": "Plus ancien"
     },
     "button": "Historique"
+  },
+  "projectAccess": {
+    "readOnlyTitle": "Lecture seule",
+    "readOnlyBody": "Vous pouvez voir ce site, sans le modifier. Le propriétaire du projet peut vous donner le droit de modifier depuis la page « Équipe »."
   }
 }

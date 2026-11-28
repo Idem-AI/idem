@@ -33,6 +33,7 @@ const ROUTES: { prefix: string; sender: EmailSender; why: string }[] = [
   { prefix: 'auth-', sender: 'no-reply', why: 'Connexion, confirmation, mot de passe : tout se fait par le lien ou le code.' },
   { prefix: 'suspicious_device', sender: 'no-reply', why: 'Alerte de sécurité : la réponse se donne par les boutons, jamais par e-mail.' },
   { prefix: 'billing.welcome_credit', sender: 'no-reply', why: 'Avis de crédit offert : rien à demander.' },
+  { prefix: 'team.', sender: 'no-reply', why: 'Invitation dans l’équipe d’un projet : on répond par les boutons ; une réponse écrite va à la personne qui invite (replyTo).' },
   { prefix: 'meter.', sender: 'no-reply', why: 'Alertes automatiques de solde iDeploy : l’action est dans la console.' },
 
   { prefix: 'payment.', sender: 'support', why: 'Reçu à citer, paiement échoué : les questions d’argent vont au support.' },

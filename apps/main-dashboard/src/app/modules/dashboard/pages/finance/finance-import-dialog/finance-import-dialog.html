@@ -187,7 +187,7 @@
             <button type="button" class="outer-button" (click)="retry()">
               {{ 'dashboard.finance.import.preview.another' | translate }}
             </button>
-            <button type="button" class="inner-button" [disabled]="selectedCount() === 0" (click)="save()">
+            <button appWriteOnly type="button" class="inner-button" [disabled]="selectedCount() === 0" (click)="save()">
               <i class="pi pi-check" aria-hidden="true"></i>
               {{ 'dashboard.finance.import.preview.save' | translate }}
             </button>

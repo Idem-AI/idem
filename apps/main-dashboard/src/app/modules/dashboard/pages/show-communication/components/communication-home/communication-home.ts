@@ -1,12 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import {
   CommunicationPlan,
   CommunicationStrategy,
   ContentIdea,
   Flyer,
+  StudioRequest,
 } from '../../../../models/communication.model';
+import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import { PromptBox } from '../prompt-box/prompt-box';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 /** Les trois étapes, dans l'ordre où on les conseille. */
 export type JourneyStepId = 'strategy' | 'calendar' | 'content';
@@ -25,7 +28,8 @@ export type HomeAction =
   | { kind: 'voice' }
   | { kind: 'plans' }
   | { kind: 'newPlan' }
-  | { kind: 'prompt'; text: string };
+  | { kind: 'conversations' }
+  | { kind: 'prompt'; request: StudioRequest };
 
 /**
  * ACCUEIL — deux choses, et rien d'autre.
@@ -43,17 +47,40 @@ export type HomeAction =
  */
 @Component({
   selector: 'app-communication-home',
-  imports: [TranslateModule, PromptBox],
+  imports: [WriteOnlyDirective, TranslateModule, PromptBox],
   templateUrl: './communication-home.html',
   styleUrl: './communication-home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommunicationHome {
+  private readonly communication = inject(CommunicationService);
+
+  readonly projectId = input.required<string>();
   readonly strategy = input<CommunicationStrategy | null>(null);
   readonly plans = input<CommunicationPlan[]>([]);
   readonly visuals = input<Flyer[]>([]);
 
   readonly action = output<HomeAction>();
+
+  /** Combien de conversations reprendre : le lien n'apparaît que s'il y en a. */
+  protected readonly conversationCount = signal(0);
+
+  constructor() {
+    effect(() => {
+      const projectId = this.projectId();
+      if (!projectId) return;
+      untracked(() =>
+        this.communication.listStudioThreads(projectId).subscribe({
+          next: (threads) => this.conversationCount.set(threads.length),
+          error: () => this.conversationCount.set(0),
+        }),
+      );
+    });
+  }
+
+  protected openConversations(): void {
+    this.action.emit({ kind: 'conversations' });
+  }
 
   /** Un calendrier archivé ne compte plus dans l'avancement. */
   private readonly liveItems = computed(() =>
@@ -92,8 +119,8 @@ export class CommunicationHome {
     }));
   });
 
-  protected ask(text: string): void {
-    this.action.emit({ kind: 'prompt', text });
+  protected ask(request: StudioRequest): void {
+    this.action.emit({ kind: 'prompt', request });
   }
 
   protected runStep(step: JourneyStep): void {

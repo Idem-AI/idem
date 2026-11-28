@@ -12,6 +12,7 @@ import { DiagramsService } from '../../services/ai-agents/diagrams.service';
 import { MermaidLoaderService } from '../../../../shared/services/mermaid-loader.service';
 import { SectionModel } from '../../models/section.model';
 import { SiteAppIllustrationComponent } from '../development/site-app-illustration';
+import { WriteOnlyDirective } from '../../../team/directives/write-only.directive';
 
 /**
  * Le plan de l'application (diagrammes), première étape d'une application
@@ -23,7 +24,7 @@ import { SiteAppIllustrationComponent } from '../development/site-app-illustrati
  */
 @Component({
   selector: 'app-show-diagrams',
-  imports: [
+  imports: [WriteOnlyDirective, 
     RouterLink,
     MarkdownModule,
     TranslateModule,

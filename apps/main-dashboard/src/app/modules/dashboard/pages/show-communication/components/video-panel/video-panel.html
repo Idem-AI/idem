@@ -3,7 +3,7 @@
 } @else if (options(); as opts) {
   @switch (view().kind) {
     @case ('create') {
-      <div class="mx-auto max-w-4xl">
+      <div>
         <app-video-builder
           [projectId]="projectId()"
           [options]="opts"
@@ -32,7 +32,7 @@
               {{ 'dashboard.showCommunication.video.list.ivision' | translate }}
             </a>
             @if (videos().length) {
-              <button type="button" class="inner-button" (click)="create()">
+              <button appWriteOnly type="button" class="inner-button" (click)="create()">
                 <i class="pi pi-plus" aria-hidden="true"></i>
                 {{ 'dashboard.showCommunication.video.list.new' | translate }}
               </button>
@@ -52,7 +52,7 @@
             <p class="mx-auto mt-2 max-w-md text-xs text-[var(--color-text-tertiary)]">
               {{ 'dashboard.showCommunication.video.list.empty.price' | translate: { price: opts.pricing.referenceCost } }}
             </p>
-            <button type="button" class="inner-button mt-6" (click)="create()">
+            <button appWriteOnly type="button" class="inner-button mt-6" (click)="create()">
               <i class="pi pi-video" aria-hidden="true"></i>
               {{ 'dashboard.showCommunication.video.list.empty.cta' | translate }}
             </button>

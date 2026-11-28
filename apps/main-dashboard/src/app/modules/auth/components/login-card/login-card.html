@@ -17,7 +17,10 @@
           <button
             type="button"
             class="outer-button login-card__provider w-full justify-center"
-            [disabled]="busy() !== null"
+            [class.login-card__provider--unavailable]="provider.unavailable"
+            [disabled]="busy() !== null || provider.unavailable"
+            [attr.aria-disabled]="provider.unavailable ? 'true' : null"
+            [attr.aria-describedby]="provider.unavailable ? 'provider-unavailable-' + provider.id : null"
             (click)="continueWith(provider.id)"
           >
             <!-- Icône à position fixe : alignée d'un bouton à l'autre, quel que soit le libellé -->
@@ -28,7 +31,17 @@
                 <i [class]="provider.icon"></i>
               }
             </span>
-            {{ 'auth.continueWith' | translate: { provider: provider.label } }}
+            <span class="login-card__provider-label">
+              {{ 'auth.continueWith' | translate: { provider: provider.label } }}
+            </span>
+            @if (provider.unavailable) {
+              <span
+                class="login-card__provider-badge"
+                [id]="'provider-unavailable-' + provider.id"
+              >
+                {{ 'auth.providerUnavailable' | translate }}
+              </span>
+            }
           </button>
         }
       </div>

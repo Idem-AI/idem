@@ -230,7 +230,7 @@
                       {{ 'dashboard.showBranding.identityEditor.logo.improveCurrent' | translate }}
                     </button>
                   }
-                  <button
+                  <button appWriteOnly
                     type="button"
                     class="button-ghost button-sm !gap-1.5"
                     [disabled]="startingJob() === 'logos'"
@@ -293,7 +293,7 @@
             @if (harmonizing()) {
               <idem-loader size="xs" [label]="'dashboard.showBranding.identityEditor.colors.harmonizing' | translate" />
             } @else if (colorsChanged()) {
-              <button type="button" class="button-ghost button-sm" (click)="resetColors()">
+              <button appWriteOnly type="button" class="button-ghost button-sm" (click)="resetColors()">
                 {{ 'dashboard.showBranding.identityEditor.colors.reset' | translate }}
               </button>
             }
@@ -436,7 +436,7 @@
                 </label>
                 <div class="flex items-center gap-1">
                   @if (chosenFonts()[role]) {
-                    <button type="button" class="button-ghost button-sm" (click)="resetFont(role)">
+                    <button appWriteOnly type="button" class="button-ghost button-sm" (click)="resetFont(role)">
                       {{ 'dashboard.showBranding.identityEditor.fonts.undo' | translate }}
                     </button>
                   }
@@ -760,7 +760,7 @@
       </button>
     </span>
   } @else {
-    <button
+    <button appWriteOnly
       type="button"
       class="button-ghost button-sm !gap-2"
       [disabled]="startingJob() === only"

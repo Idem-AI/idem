@@ -36,7 +36,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Canaris de teinture (indigo) | les couleurs | génération : palette |
 | Panier tressé (bolga) | la charge, un tout complet | ce qu'on déploie, pack, dossier polyvalent |
 | Van de vannage | trier pour trouver | recherche |
-| Arbre à palabres et tabourets | l'équipe, le conseil | équipe iDeploy |
+| Arbre à palabres et tabourets | l'équipe, le conseil | équipe iDeploy ; dashboard : page « Équipe » d'un projet (état vide) et page d'invitation (`palaver-tree-illustration`, le tabouret en couleur : la place qui attend l'invité) |
 | Tampon adinkra en calebasse | le signe de la marque | identité, logo, charte ; iDeploy : « Donnez un projet IDEM à votre site » (`stamp`, la marque lue sur le site en ligne) |
 | Pochoir d'adire eleko (tôle découpée, pâte de manioc) et le motif réimprimé | reproduire le motif d'un modèle sur une autre étoffe, dans d'autres couleurs | iVision : « Montrez un modèle, il le reproduit » — source : [Adire (textile art), Wikipédia](https://en.wikipedia.org/wiki/Adire_(textile_art)) (« metal stencils cut from the sheets of tin that lined tea chests ») |
 | Étoffe de raphia kuba à pièces appliquées (une zone découpée, une pièce cousue au point) | couper la matière brute puis l'habiller : le montage | iVision : atelier « Montage » (accueil, préparation) — sources : [WAAC, « Kuba Textiles: An Introduction »](https://cool.culturalheritage.org/waac/wn/wn08/wn08-1/wn08-102.html) (« patterns are created by cutting and removing areas of the base cloth… patched »), [UMMA, Raffia Textile Panel](https://umma.umich.edu/objects/raffia-textile-panel-1985-1-142/) |
@@ -82,6 +82,7 @@ Format : **retenu** — candidats écartés (raison).
 | Erreur « génération » | **métier à tisser, fil de chaîne cassé** | calebasse fêlée (dit l'erreur, pas l'interruption) |
 | Erreur « aucun projet » | **grenier vide, porte ouverte** | tabouret vide, calebasse vide |
 | Page introuvable | **Sankofa** (« retourne chercher ») | carrefour, pirogue perdue (pas d'objet réel qui les dise) |
+| Équipe d'un projet (personne invitée encore), invitation reçue | **arbre à palabres et tabourets**, un tabouret en couleur | bouclier (dit l'accès, pas l'équipe) ; clé de l'invitation bêta (réservée à la bêta) |
 | Création de projet : « Votre projet » | **croix d'Agadez pendue à son cordon, l'œil du caméléon en couleur** (`agadez-cross-illustration`) | jeune pousse de baobab (juste mais peu marquante en grand) ; baobab adulte (réservé à la promesse et au business plan) ; pyramides (monument funéraire) |
 | Mode assisté | **échelle dogon** | bande de kente en cours (moins lisible comme « étapes ») |
 | Mode chat | **tambour parleur** | arbre à palabres (réservé à l'équipe) |

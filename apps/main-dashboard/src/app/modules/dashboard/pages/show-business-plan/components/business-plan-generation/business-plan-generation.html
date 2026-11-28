@@ -83,7 +83,7 @@
     [title]="'dashboard.businessPlanGeneration.errors.title' | translate"
     [message]="generationError()"
   >
-    <button type="button" class="inner-button !gap-2" (click)="generateBusinessPlan()">
+    <button appWriteOnly type="button" class="inner-button !gap-2" (click)="generateBusinessPlan()">
       <i class="pi pi-refresh text-sm" aria-hidden="true"></i>
       {{ 'common.retry' | translate }}
     </button>
@@ -106,7 +106,7 @@
           {{ 'dashboard.businessPlanGeneration.empty.subtitle' | translate }}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" (click)="generateBusinessPlan()" class="inner-button" appCreativityGate [(creativity)]="creativity" [creativityCost]="creativityBaseCost()">
+          <button appWriteOnly type="button" (click)="generateBusinessPlan()" class="inner-button" appCreativityGate [(creativity)]="creativity" [creativityCost]="creativityBaseCost()">
             {{ 'dashboard.businessPlanGeneration.buttons.generate' | translate }}
           </button>
         </div>

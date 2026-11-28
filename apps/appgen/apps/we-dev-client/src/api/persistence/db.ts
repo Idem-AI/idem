@@ -67,6 +67,29 @@ export async function getProjectById(projectId: string): Promise<ProjectModel | 
   }
 }
 
+/**
+ * Les droits sur un projet IDEM : `denied` s'il existe sans être ouvert à cette
+ * personne, `unknown` si ce n'est pas un projet IDEM ou si l'API ne répond pas.
+ */
+export async function getProjectAccess(projectId: string): Promise<'edit' | 'readOnly' | 'denied' | 'unknown'> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/team/projects/${encodeURIComponent(projectId)}/access`, {
+      credentials: 'include',
+    });
+    if (response.status === 404) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      return body.error === 'project_not_found' ? 'denied' : 'unknown';
+    }
+    if (!response.ok) return 'unknown';
+    const access = (await response.json()) as { role?: string; permissions?: Record<string, string> };
+    if (access.role === 'owner' || access.permissions?.website === 'write') return 'edit';
+    if (access.permissions?.website === 'read') return 'readOnly';
+    return 'denied';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function getUserProjects(): Promise<ProjectModel[] | null> {
   try {
     await checkAuth();

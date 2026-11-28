@@ -20,11 +20,11 @@ import {
 } from '../../../../models/communication.model';
 import { FLYER_FORMATS } from '../../communication-ui';
 import { injectCompactViewport } from '../../compact-viewport';
-import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { urlParam } from '../../url-state';
+import { WriteOnlyDirective } from '../../../../../team/directives/write-only.directive';
 
 const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
 
@@ -41,10 +41,9 @@ const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
  */
 @Component({
   selector: 'app-library-panel',
-  imports: [
+  imports: [WriteOnlyDirective, 
     FormsModule,
     TranslateModule,
-    ScreenGuide,
     VisualDialog,
     VisualThumb,
     IdemLoaderComponent,

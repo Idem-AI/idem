@@ -31,7 +31,7 @@
 
       <div class="bv-header-actions">
         @if (strategy()) {
-          <button
+          <button appWriteOnly
             type="button"
             class="outer-button button-sm"
             [disabled]="isGenerating()"
@@ -81,7 +81,7 @@
           <p class="bv-empty-body">
             {{ 'dashboard.showCommunication.voice.empty.body' | translate }}
           </p>
-          <button type="button" class="inner-button mt-5" (click)="generate(false)">
+          <button appWriteOnly type="button" class="inner-button mt-5" (click)="generate(false)">
             <i class="pi pi-sparkles" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.voice.empty.cta' | translate }}
           </button>
@@ -96,7 +96,7 @@
               {{ 'dashboard.showCommunication.voice.summaryLabel' | translate }}
             </h3>
             @if (editingId() !== 'summary') {
-              <button
+              <button appWriteOnly
                 type="button"
                 class="bv-pencil"
                 [attr.aria-label]="
@@ -121,7 +121,7 @@
               [attr.aria-label]="'dashboard.showCommunication.voice.summaryLabel' | translate"
             ></textarea>
             <div class="bv-edit-actions">
-              <button
+              <button appWriteOnly
                 type="button"
                 class="inner-button button-sm"
                 [disabled]="isSaving()"
@@ -145,7 +145,7 @@
             <div class="bv-section-head">
               <h3 class="bv-label">{{ blockLabelKey(block.kind) | translate }}</h3>
               @if (editingId() !== block.id) {
-                <button
+                <button appWriteOnly
                   type="button"
                   class="bv-pencil"
                   [attr.aria-label]="
@@ -169,7 +169,7 @@
                 [attr.aria-label]="blockLabelKey(block.kind) | translate"
               ></textarea>
               <div class="bv-edit-actions">
-                <button
+                <button appWriteOnly
                   type="button"
                   class="inner-button button-sm"
                   [disabled]="isSaving()"

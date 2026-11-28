@@ -85,6 +85,8 @@ class JourneyService {
     if (existing) await this.links.update(appUuid, data, this.linksPath(userId));
     else await this.links.create(data, this.linksPath(userId), appUuid);
     logger.info('journey.app_linked', { event: 'journey.app_linked', userId, appUuid, projectId: link.projectId });
+    // L'équipe du projet voit maintenant cette application dans iDeploy (import tardif : pas de cycle).
+    void import('../team/ideploy-share.service').then(({ syncIdeploySharesLater }) => syncIdeploySharesLater(link.projectId));
   }
 
   /** Les applications iDeploy reliées à un projet. */
@@ -184,6 +186,29 @@ class JourneyService {
       if (match) return { projectId: match[1], product: match[2] ? 'app' : 'site' };
     }
     return null;
+  }
+
+  /**
+   * Les applications iDeploy d'un projet : celles publiées depuis iCode
+   * (`appDeployments`, site et application) et celles reliées depuis iDeploy
+   * (`appProjects`). Sert à ouvrir ces applications — et elles seules — aux
+   * membres de l'équipe du projet (team/ideploy-share.service).
+   */
+  async appUuidsOfProject(userId: string, projectId: string): Promise<string[]> {
+    const uuids = new Set<string>();
+    for (const link of await this.linksOf(userId, projectId)) {
+      if (link.id) uuids.add(link.id);
+    }
+    const records = await this.deployments.findAll(`users/${userId}/appDeployments`).catch(() => [] as DeploymentRecord[]);
+    for (const record of records) {
+      const match = String(record.id ?? '').match(/^(.+?)_(app_)?deployment$/);
+      if (!match || match[1] !== projectId) continue;
+      const ideploy = record.ideploy ?? {};
+      for (const uuid of [ideploy.applicationUuid, ideploy.frontendUuid, ideploy.backendUuid]) {
+        if (typeof uuid === 'string' && uuid) uuids.add(uuid);
+      }
+    }
+    return [...uuids];
   }
 
   /** Un geste vient d'avoir lieu : il est retenu, et ses recommandations sont rendues tout de suite. */

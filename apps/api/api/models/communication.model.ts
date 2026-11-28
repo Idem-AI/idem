@@ -38,6 +38,7 @@ import { MotionVideo, VideoType } from './motionVideo.model';
  */
 import { ArtDirectionModel } from './art-direction.model';
 import type { SectionSpec } from '@idem/graphic-engine';
+import type { ReferenceImage } from '../../../ivision/core/src/reference/reference.analyzer';
 
 export interface CommunicationContext {
   brandName: string;
@@ -509,10 +510,31 @@ export interface StudioPendingAction {
   formats?: FlyerFormat[];
 }
 
+/**
+ * Ce que l'utilisateur fait d'une image jointe au fil.
+ * `auto` : l'agent le lit dans la phrase (« avec ma photo » → `use`, « dans ce style » → `reference`).
+ */
+export type StudioAttachmentRole = 'auto' | 'use' | 'reference';
+
+/** Une image importée dans le fil : une photo à poser dans le visuel, ou un modèle dont on reprend la mise en page. */
+export interface StudioAttachment {
+  id: string;
+  url: string;
+  name: string;
+  mimeType: string;
+  role: StudioAttachmentRole;
+  width?: number;
+  height?: number;
+  /** Analyse de mise en page, faite une fois au premier usage comme modèle puis gardée. */
+  reference?: ReferenceImage;
+}
+
 export interface StudioMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Images jointes par l'utilisateur à ce message. */
+  attachments?: StudioAttachment[];
   /** Visuels produits par ce tour de conversation (cartes affichées dans le fil). */
   visualIds?: string[];
   /** Légende proposée, copiable en un clic. */
@@ -535,14 +557,39 @@ export interface StudioConversation {
   updatedAt?: Date;
 }
 
+/** Une conversation de l'atelier parmi d'autres : un sujet, un fil. */
+export interface StudioThread extends StudioConversation {
+  id: string;
+  /** La première demande, raccourcie : c'est elle qu'on reconnaît dans l'historique. */
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Ce que l'historique affiche d'une conversation, sans ses messages. */
+export interface StudioThreadSummary {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messageCount: number;
+  /** Le dernier visuel produit : la vignette de la conversation. */
+  coverVisualId?: string;
+}
+
 export interface CommunicationModel {
   context?: CommunicationContext;
   /** LA BOUSSOLE — la stratégie de marque. Inchangée dans sa forme. */
   strategy?: CommunicationStrategy;
   /** LES PÉRIODES — remplacent le calendrier unique. */
   plans?: CommunicationPlan[];
-  /** L'ATELIER — la conversation de création de visuels. */
+  /**
+   * @deprecated L'ancien fil unique de l'atelier : lu comme une conversation de `studioThreads`
+   * (id `main`), déplacé au premier écrit puis vidé.
+   */
   studio?: StudioConversation;
+  /** L'ATELIER — les conversations de création de visuels, la plus récente en premier. */
+  studioThreads?: StudioThread[];
   /** Tous les visuels du projet, quelle que soit leur origine. */
   visuals?: Flyer[];
   /** Assisted/queued social publications. */

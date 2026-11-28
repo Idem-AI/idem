@@ -29,6 +29,14 @@ export interface BillingRequestContext {
 export interface CustomRequest extends Request {
   /** Identité vérifiée par `authenticate`. */
   user?: IdemAuthUser;
+  /**
+   * La personne réellement connectée, quand elle agit sur le projet d'un autre
+   * en tant que membre de son équipe : `user.uid` est alors le propriétaire
+   * (voir `middleware/project-access.middleware.ts`).
+   */
+  actor?: { uid: string; email?: string };
+  /** Les droits du membre sur le projet visé, posés avec `actor`. */
+  projectAccess?: import('../../../../packages/shared-models/src/projects/project-access.model').ProjectAccess;
   /** Resolved UI language ('en' | 'fr'), set by languageMiddleware. */
   language?: string;
   policyWarning?: {

@@ -1,27 +1,122 @@
-<form class="pb" (ngSubmit)="submit()">
-  <div class="pb-box glass-card">
-    <label class="sr-only" [attr.for]="id + '-text'">
-      {{ 'dashboard.showCommunication.prompt.label' | translate }}
-    </label>
-    <textarea
-      [id]="id + '-text'"
-      class="pb-input"
-      [rows]="rows()"
-      [attr.placeholder]="placeholder() | translate"
-      [ngModel]="text()"
-      (ngModelChange)="text.set($event)"
-      name="promptText"
-      (keydown.enter)="onEnter($event)"
-    ></textarea>
-    <button type="submit" class="inner-button pb-send" [disabled]="!canSend()">
-      @if (busy()) {
-        <idem-loader size="xs" />
-      } @else {
-        <i class="pi pi-arrow-up" aria-hidden="true"></i>
-      }
-      <span class="pb-send-label">{{ 'dashboard.showCommunication.prompt.send' | translate }}</span>
-    </button>
+<form appWriteOnly class="pb" (ngSubmit)="submit()">
+  <div
+    class="pb-box glass-card"
+    [class.pb-box-drop]="dragging()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <!-- Images jointes : une vignette, ce qu'on en fait, la retirer. -->
+    @if (attachments().length > 0 || uploading() > 0) {
+      <ul class="pb-attachments" [attr.aria-label]="'dashboard.showCommunication.prompt.attach.list' | translate">
+        @for (attachment of attachments(); track attachment.id) {
+          <li class="pb-attachment">
+            <img
+              class="pb-attachment-thumb"
+              [src]="attachment.url"
+              [alt]="attachment.name"
+              width="48"
+              height="48"
+              loading="lazy"
+            />
+            <div class="pb-attachment-text">
+              <span class="pb-attachment-name">{{ attachment.name }}</span>
+              <label class="sr-only" [attr.for]="id + '-role-' + attachment.id">
+                {{ 'dashboard.showCommunication.prompt.attach.roleLabel' | translate: { name: attachment.name } }}
+              </label>
+              <select
+                class="pb-attachment-role"
+                [id]="id + '-role-' + attachment.id"
+                [ngModel]="attachment.role"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="setRole(attachment, $event)"
+              >
+                @for (role of roles; track role) {
+                  <option [value]="role">
+                    {{ 'dashboard.showCommunication.prompt.attach.roles.' + role | translate }}
+                  </option>
+                }
+              </select>
+            </div>
+            <button
+              type="button"
+              class="pb-attachment-remove"
+              [attr.aria-label]="'dashboard.showCommunication.prompt.attach.remove' | translate: { name: attachment.name }"
+              (click)="remove(attachment)"
+            >
+              <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
+          </li>
+        }
+        @if (uploading() > 0) {
+          <li class="pb-attachment pb-attachment-loading" role="status">
+            <idem-loader size="xs" />
+            <span>{{ 'dashboard.showCommunication.prompt.attach.uploading' | translate }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="pb-row">
+      <input
+        #fileInput
+        type="file"
+        class="sr-only"
+        tabindex="-1"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+        multiple
+        [attr.aria-hidden]="true"
+        (change)="onFilesPicked($event)"
+      />
+      <button
+        type="button"
+        class="button-icon pb-attach"
+        [disabled]="!canAttach()"
+        [attr.aria-label]="'dashboard.showCommunication.prompt.attach.add' | translate"
+        [attr.title]="'dashboard.showCommunication.prompt.attach.add' | translate"
+        (click)="pickFiles()"
+      >
+        <i class="pi pi-image" aria-hidden="true"></i>
+      </button>
+
+      <label class="sr-only" [attr.for]="id + '-text'">
+        {{ 'dashboard.showCommunication.prompt.label' | translate }}
+      </label>
+      <textarea
+        [id]="id + '-text'"
+        class="pb-input"
+        [rows]="rows()"
+        [attr.placeholder]="placeholder() | translate"
+        [ngModel]="text()"
+        (ngModelChange)="text.set($event)"
+        name="promptText"
+        (keydown.enter)="onEnter($event)"
+        (paste)="onPaste($event)"
+      ></textarea>
+
+      <!-- Un rond, une flèche. Le clic ouvre la bulle des crans ; le cran choisi envoie. -->
+      <button
+        #sendButton
+        type="submit"
+        class="inner-button pb-send"
+        appCreativityGate
+        [(creativity)]="creativity"
+        [disabled]="!canSend()"
+        [attr.aria-label]="'dashboard.showCommunication.prompt.send' | translate"
+        [attr.title]="'dashboard.showCommunication.prompt.send' | translate"
+      >
+        @if (busy()) {
+          <idem-loader size="xs" />
+        } @else {
+          <i class="pi pi-arrow-up" aria-hidden="true"></i>
+        }
+      </button>
+    </div>
   </div>
+
+  @if (attachError(); as error) {
+    <p class="pb-error" role="alert">{{ error | translate }}</p>
+  }
 
   <div class="pb-foot">
     <button

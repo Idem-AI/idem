@@ -190,7 +190,7 @@
           {{ 'dashboard.showPitchDeck.draft.subtitle' | translate: { count: expectedSlides().length } }}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" class="inner-button" (click)="startGeneration()" appCreativityGate [creativity]="creativity()" (creativityChange)="setCreativity($event)" [creativityCost]="creativityBaseCost()">
+          <button appWriteOnly type="button" class="inner-button" (click)="startGeneration()" appCreativityGate [creativity]="creativity()" (creativityChange)="setCreativity($event)" [creativityCost]="creativityBaseCost()">
             {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
           </button>
         </div>

@@ -5,6 +5,10 @@ import {
   chooseFlyerVariantController,
   archivePlanController,
   clearStudioController,
+  deleteStudioThreadController,
+  getStudioThreadController,
+  listStudioThreadsController,
+  uploadStudioAttachmentsController,
   createMomentController,
   createPlanController,
   createVisualController,
@@ -989,6 +993,50 @@ communicationRoutes.delete(`/${resource}/:projectId/studio`, authenticate, clear
 
 /**
  * @openapi
+ * /project/communication/{projectId}/studio/threads:
+ *   get:
+ *     tags: [Communication]
+ *     summary: The studio conversations of a project, most recent first (without their messages).
+ *     security: [{ bearerAuth: [] }]
+ * /project/communication/{projectId}/studio/threads/{threadId}:
+ *   get:
+ *     tags: [Communication]
+ *     summary: One studio conversation with its messages.
+ *     security: [{ bearerAuth: [] }]
+ *   delete:
+ *     tags: [Communication]
+ *     summary: Delete one conversation (the visuals it produced are kept).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.get(`/${resource}/:projectId/studio/threads`, authenticate, listStudioThreadsController);
+communicationRoutes.get(`/${resource}/:projectId/studio/threads/:threadId`, authenticate, getStudioThreadController);
+communicationRoutes.delete(`/${resource}/:projectId/studio/threads/:threadId`, authenticate, deleteStudioThreadController);
+
+/** Images jointes au fil de l'atelier : 4 au plus, 10 Mo chacune, images seulement. */
+const studioAttachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 4 },
+  fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|heic|heif)$/.test(file.mimetype)),
+});
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/studio/attachments:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Upload images for the studio (a photo to place in a visual, or a model to imitate).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/studio/attachments`,
+  authenticate,
+  checkPolicyAcceptance,
+  studioAttachmentUpload.array('files', 4),
+  uploadStudioAttachmentsController
+);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/studio/message:
  *   post:
  *     tags: [Communication]
@@ -1004,9 +1052,13 @@ communicationRoutes.delete(`/${resource}/:projectId/studio`, authenticate, clear
  *         application/json:
  *           schema:
  *             type: object
- *             required: [content]
  *             properties:
  *               content: { type: string }
+ *               threadId: { type: string, description: 'Absent: a new conversation starts.' }
+ *               creativity: { type: string, enum: [low, medium, high, ultra] }
+ *               attachments:
+ *                 type: array
+ *                 items: { type: object, properties: { id: { type: string }, url: { type: string }, name: { type: string }, role: { type: string, enum: [auto, use, reference] } } }
  */
 communicationRoutes.post(
   `/${resource}/:projectId/studio/message`,
