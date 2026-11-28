@@ -261,6 +261,16 @@ export class AuthService {
     }
   }
 
+  /** Renvoie le lien de confirmation d'une inscription restée sans réponse. */
+  async resendConfirmation(email: string): Promise<void> {
+    const { error } = await this.supabase.client!.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: this.returnUrl('signup') },
+    });
+    if (error) throw toAuthFlowError(error);
+  }
+
   /**
    * Lien de choix du mot de passe. Sert aussi aux comptes repris de l'ancien
    * système, qui n'ont pas encore de mot de passe.

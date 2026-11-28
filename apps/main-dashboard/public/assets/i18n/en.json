@@ -6112,6 +6112,21 @@
       "terms": "Terms of Service",
       "and": "and the",
       "privacy": "Privacy Policy"
+    },
+    "checkInboxTitle": "Check your email",
+    "checkSpam": "Nothing yet? Look in your spam folder.",
+    "resend": "Resend the email",
+    "resendIn": "Resend in {{seconds}}s",
+    "resent": "Email sent again.",
+    "useAnotherAddress": "Use another address",
+    "fieldErrors": {
+      "displayNameRequired": "Enter your name.",
+      "nameMax": "80 characters maximum.",
+      "emailRequired": "Enter your email address.",
+      "emailInvalid": "This email address isn't valid (example: name@domain.com).",
+      "passwordRequired": "Enter your password.",
+      "passwordMin": "At least 8 characters.",
+      "passwordMax": "72 characters maximum."
     }
   },
   "betaInvite": {
