@@ -23,7 +23,8 @@ jobs:
     with:
       image: idomain-api
       dockerfile: Dockerfile/prod/Dockerfile.idomain-api
-      service: idomain-api
+      # The API and the worker container run this image.
+      service: idomain-api idomain-worker
       build-env: false
       deploy: true
       free-disk: false
