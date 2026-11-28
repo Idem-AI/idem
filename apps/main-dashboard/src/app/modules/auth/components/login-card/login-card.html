@@ -1,15 +1,57 @@
 <div class="flex flex-col gap-5">
   <h1 class="text-2xl font-bold text-text-primary">
+    @if (pendingEmail()) {
+      {{ 'auth.checkInboxTitle' | translate }}
+    } @else {
     @switch (mode()) {
       @case ('signup') { {{ 'auth.signUpTitle' | translate }} }
       @case ('forgot') { {{ 'auth.forgotTitle' | translate }} }
       @case ('recovery') { {{ 'auth.recoveryTitle' | translate }} }
       @default { {{ 'auth.signInTitle' | translate }} }
     }
+    }
   </h1>
 
   @if (busy() === 'callback') {
     <idem-loader block [label]="'auth.signingIn' | translate" />
+  } @else if (pendingEmail(); as sent) {
+    <div class="flex flex-col gap-4" role="status" aria-live="polite">
+      <p class="text-sm text-text-secondary">
+        {{ 'auth.confirmSent' | translate: { email: sent } }}
+      </p>
+      <p class="text-xs text-text-tertiary">{{ 'auth.checkSpam' | translate }}</p>
+
+      @if (errorKey(); as key) {
+        <p class="text-sm login-card__error" role="alert">{{ key | translate }}</p>
+      }
+      @if (resent()) {
+        <p class="text-sm text-text-secondary">{{ 'auth.resent' | translate }}</p>
+      }
+
+      <button
+        type="button"
+        class="inner-button w-full justify-center"
+        [disabled]="resendIn() > 0 || busy() !== null"
+        (click)="resendConfirmation()"
+      >
+        @if (busy() === 'form') {
+          <idem-loader size="xs" />
+        }
+        @if (resendIn() > 0) {
+          {{ 'auth.resendIn' | translate: { seconds: resendIn() } }}
+        } @else {
+          {{ 'auth.resend' | translate }}
+        }
+      </button>
+      <div class="flex flex-col items-center gap-2 text-sm">
+        <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="useAnotherAddress()">
+          {{ 'auth.useAnotherAddress' | translate }}
+        </button>
+        <button type="button" class="font-medium text-primary-500 dark:text-primary-400 hover:underline" (click)="switchMode('signin')">
+          {{ 'auth.backToSignIn' | translate }}
+        </button>
+      </div>
+    </div>
   } @else {
     @if ((mode() === 'signin' || mode() === 'signup') && providers().length > 0) {
       <div class="flex flex-col gap-3">
@@ -59,7 +101,17 @@
       @if (mode() === 'signup') {
         <label class="flex flex-col gap-1">
           <span>{{ 'auth.name' | translate }}</span>
-          <input type="text" formControlName="displayName" autocomplete="name" />
+          <input
+            type="text"
+            formControlName="displayName"
+            autocomplete="name"
+            maxlength="80"
+            [attr.aria-invalid]="!!fieldError('displayName')"
+            [attr.aria-describedby]="fieldError('displayName') ? 'name-error' : null"
+          />
+          @if (fieldError('displayName'); as fe) {
+            <span id="name-error" class="text-xs login-card__error" role="alert">{{ fe | translate }}</span>
+          }
         </label>
       }
 
@@ -71,8 +123,12 @@
             formControlName="email"
             autocomplete="email"
             required
-            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+            [attr.aria-invalid]="!!fieldError('email')"
+            [attr.aria-describedby]="fieldError('email') ? 'email-error' : null"
           />
+          @if (fieldError('email'); as fe) {
+            <span id="email-error" class="text-xs login-card__error" role="alert">{{ fe | translate }}</span>
+          }
         </label>
       }
 
@@ -83,12 +139,14 @@
             type="password"
             formControlName="password"
             required
-            minlength="8"
             [attr.autocomplete]="mode() === 'signin' ? 'current-password' : 'new-password'"
-            [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
-            aria-describedby="password-hint"
+            [attr.aria-invalid]="!!fieldError('password')"
+            [attr.aria-describedby]="fieldError('password') ? 'password-error' : mode() !== 'signin' ? 'password-hint' : null"
           />
-          @if (mode() !== 'signin') {
+          @if (fieldError('password'); as fe) {
+            <span id="password-error" class="text-xs login-card__error" role="alert">{{ fe | translate }}</span>
+          }
+          @if (mode() !== 'signin' && !fieldError('password')) {
             <span id="password-hint" class="text-xs text-text-tertiary">
               {{ 'auth.passwordHint' | translate }}
             </span>

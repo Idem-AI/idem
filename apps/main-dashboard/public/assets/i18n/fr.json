@@ -6078,6 +6078,21 @@
       "terms": "conditions d'utilisation",
       "and": "et la",
       "privacy": "politique de confidentialité"
+    },
+    "checkInboxTitle": "Vérifiez vos e-mails",
+    "checkSpam": "Rien reçu ? Regardez dans vos courriers indésirables.",
+    "resend": "Renvoyer l'e-mail",
+    "resendIn": "Renvoyer dans {{seconds}} s",
+    "resent": "E-mail renvoyé.",
+    "useAnotherAddress": "Utiliser une autre adresse",
+    "fieldErrors": {
+      "displayNameRequired": "Indiquez votre nom.",
+      "nameMax": "80 caractères maximum.",
+      "emailRequired": "Indiquez votre adresse e-mail.",
+      "emailInvalid": "Cette adresse e-mail n'est pas valide (exemple : nom@domaine.com).",
+      "passwordRequired": "Indiquez votre mot de passe.",
+      "passwordMin": "8 caractères minimum.",
+      "passwordMax": "72 caractères maximum."
     }
   },
   "betaInvite": {
