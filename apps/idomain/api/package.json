@@ -47,6 +47,7 @@
     "@types/hpp": "^0.2.7",
     "@types/node": "^22.13.11",
     "@types/pg": "^8.11.10",
+    "mongodb": "^6.20.0",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
